@@ -1,0 +1,60 @@
+{
+  "name": "crdf_system",
+  "agents": ["claim_intake_specialist", "claim_decomposer", "evidence_collector", "source_credibility_scorer", "contradiction_detector", "cross_verifier", "risk_assessor", "confidence_scorer"],
+  "tasks": [
+    {
+      "name": "take_the_raw_user_task",
+      "description": "Take the raw user claim: {claim}. Clean up any grammar or informal language without changing its meaning. Determine if it is a genuine checkable factual claim, as opposed to a question, greeting, empty input, or pure opinion/prediction. If the claim is ambiguous (missing a critical name, date, or location needed to verify it), do not guess \u2014 instead ask exactly one clarifying question. If the input is not a checkable claim at all, reject it and explain why in one sentence. Output the cleaned claim text along with a boolean field ready_for_processing that is true only when the claim is clear enough to move to decomposition.",
+      "expected_output": "A JSON object with exactly these fields: cleaned_claim (string), ready_for_processing (boolean), and status (string - one of ready, needs_clarification, or rejected).",
+      "agent": "claim_intake_specialist"
+    },
+    {
+      "name": "decompose_claim_into_subclaims",
+      "description": "Take the cleaned claim from the previous step. If the input text is not itself a substantive factual claim - for example, if it is a clarifying question, a rejection message, or an empty/unclear statement - output {\"sub_claims\": []} and do nothing else. Otherwise, break it into the smallest set of independently verifiable sub-claims (maximum 7). Clearly separate factual assertions from opinions or predictions. IMPORTANT: every assertion in the claim must appear as a sub-claim, including opinions and predictions \u2014 do not omit them. Mark factual assertions as type factual, and mark opinions or predictions as type opinion_prediction. Never drop a sub-claim just because it is not independently checkable. For each sub-claim, extract any entities (people, organizations), dates, and locations mentioned. If the claim is a single simple fact, output it as one sub-claim rather than forcing a split.",
+      "expected_output": "A JSON object with a field sub_claims, which is an array of objects. Each object has: text (string), type (string - either factual or opinion_prediction), entities (array of strings), dates (array of strings), and locations (array of strings). Empty arrays are fine when nothing is found.",
+      "agent": "claim_decomposer"
+    },
+    {
+      "name": "collect_evidence_for_subclaims",
+      "description": "Take the sub_claims list from the previous step. For each sub-claim with type factual, formulate 2-3 targeted search queries and use the search tool to find real evidence. Aim for at least 3 independent sources per sub-claim where possible, avoiding near-duplicate sources from the same publisher. Report both supporting and opposing evidence honestly \u2014 if no opposing evidence genuinely exists, say so rather than inventing fake controversy. Skip evidence collection entirely for sub-claims of type opinion_prediction, and skip everything if sub_claims is empty.",
+      "expected_output": "A JSON object with a field evidence, an array of objects. Each object has: sub_claim_text (string), sources (array of objects, each with url, publisher, supports (boolean), and summary (string, one sentence)).",
+      "agent": "evidence_collector"
+    },
+    {
+      "name": "score_source_credibility",
+      "description": "Take the evidence list from the collect_evidence_for_subclaims step. For every source under every sub-claim, assign a credibility score from 0.0 to 1.0 based on four criteria: authority (is this a recognized, reputable publisher), recency (is the information current), corroboration (do other independent sources agree), and historical reliability (has this publisher been generally accurate over time). IMPORTANT: if a source is unfamiliar or its reliability cannot be verified, cap its score at 0.4 maximum, even if other sources happen to corroborate it \u2014 corroboration alone can never rescue an untrustworthy source above that cap. If evidence is empty, output an empty scores array.",
+      "expected_output": "A JSON object with a field scores, an array of objects. Each object has: url (string), publisher (string), credibility_score (number between 0.0 and 1.0), reasoning (string, one sentence explaining the score).",
+      "agent": "source_credibility_scorer"
+    },
+    {
+      "name": "detect_contradictions",
+      "description": "Take the evidence list from the collect_evidence_for_subclaims step. For each sub-claim, compare all its sources and identify genuine conflicts. Classify every conflict found as exactly one of three types: full_contradiction (sources directly state opposing facts about the same thing), partial_contradiction (sources disagree only on scope, degree, or detail, not the core fact), or temporal_difference (both statements are true, just at different points in time - this is NOT a real conflict and should be labeled accordingly rather than treated as a problem). If sources for a sub-claim genuinely agree with no meaningful disagreement, report no contradiction for that sub-claim. If evidence is empty, output an empty contradictions array.",
+      "expected_output": "A JSON object with a field contradictions, an array of objects. Each object has: sub_claim_text (string), contradiction_type (string - one of full_contradiction, partial_contradiction, temporal_difference, or none), explanation (string, one to two sentences describing what was found).",
+      "agent": "contradiction_detector"
+    },
+    {
+      "name": "cross_verify_independently",
+      "description": "Take ONLY the raw evidence list from the collect_evidence_for_subclaims step - the sources, their supports flags, and summaries. Do NOT reference or consider any credibility scores or contradiction findings from other steps, as this evaluation must be completely independent. For each sub-claim, form your own verdict based solely on this raw evidence: does the evidence, taken as a whole, support the sub-claim, contradict it, or is it genuinely ambiguous? Give a brief independent reasoning for each verdict. If evidence is empty, output an empty verdicts array.",
+      "expected_output": "A JSON object with a field verdicts, an array of objects. Each object has: sub_claim_text (string), independent_verdict (string - one of supported, contradicted, or ambiguous), reasoning (string, one to two sentences).",
+      "agent": "cross_verifier"
+    },
+    {
+      "name": "assess_risk_and_severity",
+      "description": "Take the sub_claims list. For each sub-claim, evaluate what would happen if it turned out to be false and someone genuinely acted on that false belief. Rate the severity as exactly one of: low, medium, high, or critical. Identify which of these domains would be affected, if any: financial, reputational, legal, public_health, public_safety. A sub-claim can affect multiple domains or none. Base the rating purely on real-world consequence, not on how confident or authoritative the claim sounds. If sub_claims is empty, output an empty risk_assessments array.",
+      "expected_output": "A JSON object with a field risk_assessments, an array of objects. Each object has: sub_claim_text (string), severity (string - one of low, medium, high, critical), domains_affected (array of strings from: financial, reputational, legal, public_health, public_safety), reasoning (string, one to two sentences).",
+      "agent": "risk_assessor"
+    },
+    {
+      "name": "score_confidence",
+      "description": "Take the scores list from score_source_credibility, the contradictions list from detect_contradictions, and the verdicts list from cross_verify_independently. For each sub-claim, compute one final confidence score from 0 to 100 using this exact weighting: source credibility contributes up to 40 percent of the score (based on the average credibility_score of that sub-claim's sources), absence of unresolved contradictions contributes up to 35 percent (full_contradiction or partial_contradiction reduces this heavily, temporal_difference or none does not), and cross-verification agreement contributes up to 25 percent (full points if independent_verdict agrees with the overall evidence direction, zero if it does not). CRITICAL: The confidence_score MUST be the exact arithmetic sum of the three component values you calculate in your breakdown - nothing else. Do not apply any additional rounding, bonus weighting, or adjustment beyond that sum. If your breakdown shows components adding to 92, the confidence_score field must be 92, not any other number. IMPORTANT HARD RULE: if the independent_verdict for a sub-claim is ambiguous, the final confidence score for that sub-claim must be capped at 65 maximum, regardless of how high the other three factors would otherwise push it. If sub_claims is empty, output an empty confidence_scores array.",
+      "expected_output": "A JSON object with a field confidence_scores, an array of objects. Each object has: sub_claim_text (string), confidence_score (integer 0-100), breakdown (string, briefly showing how the three factors combined), capped_for_ambiguity (boolean).",
+      "agent": "confidence_scorer"
+    }
+  ],
+  "process": "sequential",
+  "verbose": true,
+  "memory": false,
+  "output_log_file": "crew.log",
+  "inputs": {}
+}
+
