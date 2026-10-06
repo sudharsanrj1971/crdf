@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CRDF - Claim Verification</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --border: #2a2e38;
+    --text: #e6e8ec;
+    --muted: #9aa0ac;
+    --accent: #5b8def;
+    --true: #3fb950;
+    --false: #f85149;
+    --warn: #e3b341;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 2rem 1rem;
+  }
+  .wrap { max-width: 780px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+  .subtitle { color: var(--muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+  }
+  label { display: block; font-size: 0.85rem; color: var(--muted); margin: 0.75rem 0 0.3rem; }
+  textarea, input[type=text] {
+    width: 100%;
+    background: #10131a;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 0.6rem;
+    font-size: 0.95rem;
+    resize: vertical;
+  }
+  input[type=file] { color: var(--muted); font-size: 0.85rem; }
+  .file-row { display: flex; gap: 1rem; flex-wrap: wrap; }
+  .file-row > div { flex: 1; min-width: 150px; }
+  button {
+    margin-top: 1.25rem;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.7rem 1.4rem;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.5; cursor: default; }
+  #status { margin-top: 0.75rem; font-size: 0.85rem; color: var(--muted); }
+  .result-section { display: none; }
+  .badge {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .badge.true { background: rgba(63,185,80,0.15); color: var(--true); }
+  .badge.false { background: rgba(248,81,73,0.15); color: var(--false); }
+  .badge.warn { background: rgba(227,179,65,0.15); color: var(--warn); }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 0.85rem;
+    color: var(--text);
+    background: #10131a;
+    padding: 0.9rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  .mm-item { margin-bottom: 0.75rem; font-size: 0.88rem; }
+  .mm-item .label { color: var(--muted); font-size: 0.8rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>CRDF - Claim Research and Detection Framework</h1>
+  <div class="subtitle">Submit a claim, optionally attach supporting media, and get an evidence-based verdict.</div>
+
+  <div class="panel">
+    <form id="analyzeForm">
+      <label for="claim">Claim to verify</label>
+      <textarea id="claim" name="claim" rows="3" required placeholder="e.g. The Eiffel Tower was completed in 1889."></textarea>
+
+      <div class="file-row">
+        <div>
+          <label for="image">Image (optional)</label>
+          <input type="file" id="image" name="image" accept="image/*">
+        </div>
+        <div>
+          <label for="video">Video (optional)</label>
+          <input type="file" id="video" name="video" accept="video/*">
+        </div>
+        <div>
+          <label for="document">Document (optional)</label>
+          <input type="file" id="document" name="document">
+        </div>
+      </div>
+
+      <button type="submit" id="submitBtn">Analyze Claim</button>
+      <div id="status"></div>
+    </form>
+  </div>
+
+  <div class="panel result-section" id="results">
+    <h2 style="font-size:1.1rem;">Results</h2>
+    <div id="multimodalSummary"></div>
+    <div id="reportOutput"></div>
+  </div>
+</div>
+
+<script>
+const form = document.getElementById('analyzeForm');
+const statusEl = document.getElementById('status');
+const submitBtn = document.getElementById('submitBtn');
+const resultsPanel = document.getElementById('results');
+const mmSummaryEl = document.getElementById('multimodalSummary');
+const reportEl = document.getElementById('reportOutput');
+
+function badge(text, kind) {
+  return `<span class="badge ${kind}">${text}</span>`;
+}
+
+function renderMultimodal(mm) {
+  let html = '';
+  const img = mm.image_analysis;
+  const vid = mm.video_analysis;
+  const doc = mm.document_analysis;
+
+  if (img && img.has_image) {
+    const manip = img.manipulation_check || {};
+    const match = img.content_match_check || {};
+    html += `<div class="mm-item"><div class="label">Image analysis</div>
+      Manipulated: ${badge(manip.appears_manipulated ? 'Yes' : 'No', manip.appears_manipulated ? 'false' : 'true')}
+      &nbsp; Matches claim: ${badge(String(match.matches_claim), match.matches_claim === true ? 'true' : (match.matches_claim === false ? 'false' : 'warn'))}<br>
+      <span style="color:var(--muted)">${manip.reasoning || ''} ${match.reasoning || ''}</span></div>`;
+  }
+  if (vid && vid.has_video) {
+    const manip = vid.manipulation_check || {};
+    const match = vid.content_match_check || {};
+    html += `<div class="mm-item"><div class="label">Video analysis</div>
+      Manipulated: ${badge(manip.appears_manipulated ? 'Yes' : 'No', manip.appears_manipulated ? 'false' : 'true')}
+      &nbsp; Matches claim: ${badge(String(match.matches_claim), match.matches_claim === true ? 'true' : (match.matches_claim === false ? 'false' : 'warn'))}<br>
+      <span style="color:var(--muted)">${manip.reasoning || ''} ${match.reasoning || ''}</span></div>`;
+  }
+  if (doc && doc.has_document && doc.has_text_content) {
+    html += `<div class="mm-item"><div class="label">Document text extracted</div>
+      <pre>${doc.extracted_text || ''}</pre></div>`;
+  }
+  mmSummaryEl.innerHTML = html;
+}
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  submitBtn.disabled = true;
+  statusEl.textContent = 'Analyzing claim - this can take 1-5 minutes depending on media attached...';
+  resultsPanel.style.display = 'none';
+
+  const formData = new FormData(form);
+
+  try {
+    const resp = await fetch('/analyze', { method: 'POST', body: formData });
+    const data = await resp.json();
+
+    renderMultimodal(data.multimodal_results || {});
+
+    if (data.text_pipeline_error) {
+      reportEl.innerHTML = `<div class="label">Text pipeline error</div><pre>${data.text_pipeline_error}</pre>`;
+    } else {
+      reportEl.innerHTML = `<div class="label" style="margin-top:1rem;">Full report</div><pre>${data.text_pipeline_report || 'No report returned.'}</pre>`;
+    }
+
+    resultsPanel.style.display = 'block';
+    statusEl.textContent = 'Done.';
+  } catch (err) {
+    statusEl.textContent = 'Error: ' + err.message;
+  } finally {
+    submitBtn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

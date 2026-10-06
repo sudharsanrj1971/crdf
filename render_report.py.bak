@@ -1,0 +1,330 @@
+"""
+Render CRDF markdown report into a polished PDF matching the CRDF Verification Report style.
+
+Usage:
+    python render_report.py [--json path/to/combined_result.json] [--output path/to/output.pdf] [--single-page]
+"""
+
+import argparse
+import datetime
+import json
+import re
+import sys
+from pathlib import Path
+
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+)
+
+
+def parse_markdown_to_flowables(md_text: str, styles: dict, compact: bool = False) -> list:
+    """Parse markdown report string into ReportLab flowables."""
+    flowables = []
+    lines = md_text.splitlines()
+    i = 0
+    n = len(lines)
+
+    table_lines = []
+
+    sp_before_tbl = 0.2 if compact else 4
+    sp_after_tbl = 0.5 if compact else 8
+    tbl_padding_v = 0.4 if compact else 6
+    tbl_padding_h = 2 if compact else 8
+
+    def flush_table():
+        nonlocal table_lines
+        if not table_lines:
+            return
+        
+        # Parse markdown table
+        rows = []
+        for line in table_lines:
+            if re.match(r'^\s*\|?\s*:?-+:?\s*\|', line):
+                continue  # separator line
+            cols = [c.strip() for c in line.strip('|').split('|')]
+            if any(cols):
+                rows.append(cols)
+
+        table_lines = []
+        if not rows:
+            return
+
+        # Build ReportLab Table
+        table_data = []
+        is_header = True
+        for row in rows:
+            row_data = []
+            for cell in row:
+                cell_clean = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', cell)
+                cell_clean = re.sub(r'\*(.*?)\*', r'<i>\1</i>', cell_clean)
+                cell_clean = re.sub(r'\[(.*?)\]\((.*?)\)', r'<a href="\2">\1</a>', cell_clean)
+                style_to_use = styles['TableHeader'] if is_header else styles['TableCell']
+                row_data.append(Paragraph(cell_clean, style_to_use))
+            table_data.append(row_data)
+            is_header = False
+
+        if not table_data:
+            return
+
+        t = Table(table_data, repeatRows=1)
+        ts = [
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1E293B')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), tbl_padding_v),
+            ('TOPPADDING', (0, 0), (-1, -1), tbl_padding_v),
+            ('LEFTPADDING', (0, 0), (-1, -1), tbl_padding_h),
+            ('RIGHTPADDING', (0, 0), (-1, -1), tbl_padding_h),
+            ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#CBD5E1')),
+        ]
+        for r_idx in range(1, len(table_data)):
+            bg = colors.HexColor('#F8FAFC') if r_idx % 2 == 1 else colors.white
+            ts.append(('BACKGROUND', (0, r_idx), (-1, r_idx), bg))
+
+        t.setStyle(TableStyle(ts))
+        flowables.append(Spacer(1, sp_before_tbl))
+        flowables.append(t)
+        flowables.append(Spacer(1, sp_after_tbl))
+
+    in_references = False
+
+    while i < n:
+        line = lines[i].strip()
+
+        if not line:
+            flush_table()
+            i += 1
+            continue
+
+        if line.startswith('|') and '|' in line[1:]:
+            table_lines.append(line)
+            i += 1
+            continue
+        else:
+            flush_table()
+
+        if line.startswith('# '):
+            title_text = line[2:].strip()
+            flowables.append(Paragraph(title_text, styles['DocTitle']))
+            flowables.append(HRFlowable(width="100%", thickness=0.8 if compact else 2, color=colors.HexColor('#0F172A'), spaceBefore=0.2 if compact else 4, spaceAfter=1 if compact else 12))
+            i += 1
+            continue
+
+        if line.startswith('## '):
+            h2_text = line[3:].strip()
+            flowables.append(Spacer(1, 0.5 if compact else 10))
+            flowables.append(Paragraph(h2_text, styles['SectionHeader']))
+            flowables.append(HRFlowable(width="100%", thickness=0.3 if compact else 1, color=colors.HexColor('#2563EB'), spaceBefore=0.2 if compact else 2, spaceAfter=0.5 if compact else 8))
+            if "References" in h2_text:
+                in_references = True
+            else:
+                in_references = False
+            i += 1
+            continue
+
+        if line.startswith('### '):
+            h3_text = line[4:].strip()
+            flowables.append(Spacer(1, 0.2 if compact else 6))
+            flowables.append(Paragraph(h3_text, styles['SubSectionHeader']))
+            i += 1
+            continue
+
+        if re.search(r'FINAL VERDICT|CONFIDENCE SCORE', line, re.IGNORECASE) and not line.startswith('|'):
+            banner_text = line.replace('**', '').replace('*', '')
+            banner_style = ParagraphStyle(
+                'BannerStyle', parent=styles['Normal'], fontName='Helvetica-Bold',
+                fontSize=6.5 if compact else 13, leading=8 if compact else 16,
+                textColor=colors.HexColor('#B91C1C') if any(w in line for w in ["FALSE", "MISLEADING", "Contradicted"]) else colors.HexColor('#15803D'),
+                alignment=1,
+            )
+            banner_table = Table([[Paragraph(banner_text, banner_style)]], colWidths=['100%'])
+            banner_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FEF2F2') if any(w in line for w in ["FALSE", "MISLEADING", "Contradicted"]) else colors.HexColor('#F0FDF4')),
+                ('BOX', (0, 0), (-1, -1), 0.6, colors.HexColor('#EF4444') if any(w in line for w in ["FALSE", "MISLEADING", "Contradicted"]) else colors.HexColor('#22C55E')),
+                ('TOPPADDING', (0, 0), (-1, -1), 1.5 if compact else 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 1.5 if compact else 10),
+                ('LEFTPADDING', (0, 0), (-1, -1), 3 if compact else 12),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 3 if compact else 12),
+            ]))
+            flowables.append(Spacer(1, 0.5 if compact else 6))
+            flowables.append(banner_table)
+            flowables.append(Spacer(1, 1 if compact else 10))
+            i += 1
+            continue
+
+        if line.startswith('- ') or line.startswith('* '):
+            bullet_text = line[2:].strip()
+            bullet_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', bullet_text)
+            bullet_text = re.sub(r'\*(.*?)\*', r'<i>\1</i>', bullet_text)
+            flowables.append(Paragraph(f"• {bullet_text}", styles['BulletText']))
+            i += 1
+            continue
+
+        p_text = line
+        p_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', p_text)
+        p_text = re.sub(r'\*(.*?)\*', r'<i>\1</i>', p_text)
+
+        if in_references:
+            flowables.append(Paragraph(p_text, styles['RefText']))
+        else:
+            flowables.append(Paragraph(p_text, styles['Body']))
+            flowables.append(Spacer(1, 0.2 if compact else 4))
+
+        i += 1
+
+    flush_table()
+    return flowables
+
+
+def generate_pdf(json_path: str, output_path: str = None, single_page: bool = False) -> str:
+    with open(json_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    report_md = data.get('text_pipeline_report')
+    if not report_md:
+        raise ValueError(f"No text_pipeline_report found in {json_path}")
+
+    claim = data.get('claim', 'Fact Check Verification Report')
+    slug = re.sub(r'[^a-zA-Z0-9]+', '_', claim[:30]).strip('_').lower()
+    timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    mode_str = "singlepage" if single_page else "full"
+
+    if not output_path:
+        out_dir = Path("output")
+        out_dir.mkdir(exist_ok=True)
+        output_path = str(out_dir / f"CRDF_Report_{slug}_{mode_str}_{timestamp_str}.pdf")
+    else:
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+
+    margin = 8 if single_page else 40
+
+    doc = SimpleDocTemplate(
+        output_path,
+        pagesize=letter,
+        leftMargin=margin,
+        rightMargin=margin,
+        topMargin=margin,
+        bottomMargin=margin,
+    )
+
+    base_styles = getSampleStyleSheet()
+
+    if single_page:
+        styles = {
+            'Normal': base_styles['Normal'],
+            'DocTitle': ParagraphStyle(
+                'DocTitle', parent=base_styles['Heading1'],
+                fontName='Helvetica-Bold', fontSize=8, leading=9.5,
+                textColor=colors.HexColor('#0F172A'), alignment=0,
+            ),
+            'SectionHeader': ParagraphStyle(
+                'SectionHeader', parent=base_styles['Heading2'],
+                fontName='Helvetica-Bold', fontSize=5.2, leading=6.2,
+                textColor=colors.HexColor('#1E293B'), keepWithNext=True,
+            ),
+            'SubSectionHeader': ParagraphStyle(
+                'SubSectionHeader', parent=base_styles['Heading3'],
+                fontName='Helvetica-Bold', fontSize=4.8, leading=5.8,
+                textColor=colors.HexColor('#334155'), keepWithNext=True,
+            ),
+            'Body': ParagraphStyle(
+                'Body', parent=base_styles['Normal'],
+                fontName='Helvetica', fontSize=4.5, leading=5.5,
+                textColor=colors.HexColor('#334155'),
+            ),
+            'BulletText': ParagraphStyle(
+                'BulletText', parent=base_styles['Normal'],
+                fontName='Helvetica', fontSize=4.5, leading=5.5, leftIndent=5,
+                textColor=colors.HexColor('#334155'),
+            ),
+            'TableHeader': ParagraphStyle(
+                'TableHeader', parent=base_styles['Normal'],
+                fontName='Helvetica-Bold', fontSize=4.5, leading=5.5,
+                textColor=colors.white,
+            ),
+            'TableCell': ParagraphStyle(
+                'TableCell', parent=base_styles['Normal'],
+                fontName='Helvetica', fontSize=4.2, leading=5.0,
+                textColor=colors.HexColor('#1E293B'),
+            ),
+            'RefText': ParagraphStyle(
+                'RefText', parent=base_styles['Normal'],
+                fontName='Courier', fontSize=4.0, leading=5.0,
+                textColor=colors.HexColor('#2563EB'),
+            ),
+        }
+    else:
+        styles = {
+            'Normal': base_styles['Normal'],
+            'DocTitle': ParagraphStyle(
+                'DocTitle', parent=base_styles['Heading1'],
+                fontName='Helvetica-Bold', fontSize=20, leading=24,
+                textColor=colors.HexColor('#0F172A'), alignment=0,
+            ),
+            'SectionHeader': ParagraphStyle(
+                'SectionHeader', parent=base_styles['Heading2'],
+                fontName='Helvetica-Bold', fontSize=13, leading=16,
+                textColor=colors.HexColor('#1E293B'), keepWithNext=True,
+            ),
+            'SubSectionHeader': ParagraphStyle(
+                'SubSectionHeader', parent=base_styles['Heading3'],
+                fontName='Helvetica-Bold', fontSize=11, leading=14,
+                textColor=colors.HexColor('#334155'), keepWithNext=True,
+            ),
+            'Body': ParagraphStyle(
+                'Body', parent=base_styles['Normal'],
+                fontName='Helvetica', fontSize=9.5, leading=13.5,
+                textColor=colors.HexColor('#334155'),
+            ),
+            'BulletText': ParagraphStyle(
+                'BulletText', parent=base_styles['Normal'],
+                fontName='Helvetica', fontSize=9.5, leading=13.5, leftIndent=15,
+                textColor=colors.HexColor('#334155'),
+            ),
+            'TableHeader': ParagraphStyle(
+                'TableHeader', parent=base_styles['Normal'],
+                fontName='Helvetica-Bold', fontSize=9, leading=11,
+                textColor=colors.white,
+            ),
+            'TableCell': ParagraphStyle(
+                'TableCell', parent=base_styles['Normal'],
+                fontName='Helvetica', fontSize=8.5, leading=11,
+                textColor=colors.HexColor('#1E293B'),
+            ),
+            'RefText': ParagraphStyle(
+                'RefText', parent=base_styles['Normal'],
+                fontName='Courier', fontSize=8, leading=11,
+                textColor=colors.HexColor('#2563EB'),
+            ),
+        }
+
+    elements = parse_markdown_to_flowables(report_md, styles, compact=single_page)
+
+    def add_header_footer(canvas, doc):
+        canvas.saveState()
+        canvas.setFont('Helvetica', 5 if single_page else 8)
+        canvas.setFillColor(colors.HexColor('#94A3B8'))
+        canvas.drawString(margin, 4 if single_page else 20, "CRDF System — Claim vs Reality Determination Framework")
+        canvas.drawRightString(612 - margin, 4 if single_page else 20, f"Page {doc.page}")
+        canvas.setStrokeColor(colors.HexColor('#E2E8F0'))
+        canvas.setLineWidth(0.3)
+        canvas.line(margin, 8 if single_page else 30, 612 - margin, 8 if single_page else 30)
+        canvas.restoreState()
+
+    doc.build(elements, onFirstPage=add_header_footer, onLaterPages=add_header_footer)
+    print(f"Successfully generated PDF report ({mode_str}) at: {output_path}")
+    return output_path
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--json", default="combined_result.json")
+    parser.add_argument("--output", default=None)
+    parser.add_argument("--single-page", action="store_true", help="Render report on a single page")
+    args = parser.parse_args()
+
+    generate_pdf(args.json, args.output, single_page=args.single_page)

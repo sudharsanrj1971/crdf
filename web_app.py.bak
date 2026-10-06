@@ -1,0 +1,105 @@
+"""
+CRDF web backend.
+
+Wraps the existing multimodal checks (multimodal_image_check.py,
+multimodal_video_check.py, multimodal_document_check.py) and the 15-agent
+text pipeline (crew.jsonc, run via run_full_crdf.run_text_pipeline_direct)
+behind a simple HTTP API, so a browser frontend can submit a claim (plus
+optional file uploads) and get the final report back.
+
+Run with:
+    pip install fastapi uvicorn python-multipart --break-system-packages
+    uvicorn web_app:app --reload --port 8000
+
+Then open http://127.0.0.1:8000 in a browser.
+"""
+
+import json
+import shutil
+import tempfile
+import uuid
+from pathlib import Path
+
+from fastapi import FastAPI, Form, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+
+from multimodal_image_check import run_image_check
+from multimodal_video_check import run_video_check
+from multimodal_document_check import run_document_check
+from run_full_crdf import build_multimodal_summary, run_text_pipeline_direct
+
+app = FastAPI(title="CRDF - Claim Research and Detection Framework")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+UPLOAD_DIR = Path(tempfile.gettempdir()) / "crdf_uploads"
+UPLOAD_DIR.mkdir(exist_ok=True)
+
+
+def _save_upload(upload: UploadFile | None) -> str:
+    """Save an uploaded file to a temp path and return its path as a
+    string, or 'none' if no file was provided."""
+    if upload is None or not upload.filename:
+        return "none"
+    suffix = Path(upload.filename).suffix
+    dest = UPLOAD_DIR / f"{uuid.uuid4().hex}{suffix}"
+    with dest.open("wb") as f:
+        shutil.copyfileobj(upload.file, f)
+    return str(dest)
+
+
+@app.post("/analyze")
+async def analyze(
+    claim: str = Form(...),
+    session_id: str = Form("none"),
+    image: UploadFile | None = None,
+    video: UploadFile | None = None,
+    document: UploadFile | None = None,
+):
+    image_path = _save_upload(image)
+    video_path = _save_upload(video)
+    document_path = _save_upload(document)
+
+    try:
+        image_result = run_image_check(claim, image_path)
+        video_result = run_video_check(claim, video_path)
+        document_result = run_document_check(document_path)
+
+        multimodal_summary_text = build_multimodal_summary(
+            image_result, video_result, document_result
+        )
+
+        report_text, error = run_text_pipeline_direct(claim, session_id)
+
+        combined = {
+            "claim": claim,
+            "multimodal_results": {
+                "image_analysis": image_result,
+                "video_analysis": video_result,
+                "document_analysis": document_result,
+            },
+            "multimodal_summary_text": multimodal_summary_text,
+            "text_pipeline_report": report_text,
+            "text_pipeline_error": error,
+        }
+        return JSONResponse(content=combined)
+    finally:
+        # Clean up uploaded temp files regardless of success/failure
+        for p in (image_path, video_path, document_path):
+            if p != "none":
+                Path(p).unlink(missing_ok=True)
+
+
+@app.get("/")
+async def root():
+    return FileResponse(Path(__file__).parent / "static" / "index.html")
+
+
+app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")

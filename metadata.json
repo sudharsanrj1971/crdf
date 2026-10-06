@@ -1,0 +1,6 @@
+{
+  "name": "CRDF Document & OCR Analysis",
+  "description": "Extract readable text from documents and images, keeping structural elements and authenticity flags intact.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

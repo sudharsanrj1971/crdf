@@ -1,0 +1,280 @@
+{
+  "wall_time": 94.24947094917297,
+  "data": {
+    "claim": "The first iPhone was released with 5G connectivity in 2007.",
+    "multimodal_results": {
+      "image_analysis": {
+        "has_image": false,
+        "manipulation_check": {
+          "appears_manipulated": false,
+          "reasoning": ""
+        },
+        "content_match_check": {
+          "matches_claim": "undetermined",
+          "reasoning": ""
+        }
+      },
+      "video_analysis": {
+        "has_video": false,
+        "manipulation_check": {
+          "appears_manipulated": false,
+          "reasoning": ""
+        },
+        "content_match_check": {
+          "matches_claim": "undetermined",
+          "reasoning": ""
+        }
+      },
+      "document_analysis": {
+        "has_document": false,
+        "has_text_content": false,
+        "extracted_text": "",
+        "unreadable_sections": []
+      }
+    },
+    "multimodal_summary_text": "",
+    "text_pipeline_report": "## 1. REPORT HEADER\n\n| Field | Value |\n| :--- | :--- |\n| Report ID | CRDF-2026842910 |\n| Submission Date | 2026-05-22 (Generation Time) |\n| Claim Category | Consumer Technology |\n| Evidence Submitted | 6 |\n\n## 2. FINAL VERDICT AND CONFIDENCE SCORE\nFinal Verdict: False. Confidence Score: 50 (Aggregate).\n\n## 3. EXECUTIVE SUMMARY\nThis report evaluates the claim that the first iPhone released in 2007 featured 5G connectivity. Evidence confirms the 2007 release date is accurate, but the assertion regarding 5G capability is explicitly contradicted by all available technical documentation.\n\n## 4. CLAIM DECOMPOSITION\n\n| # | Sub-Claim | Type |\n| :--- | :--- | :--- |\n| 1 | The first iPhone was released in 2007. | factual |\n| 2 | The first iPhone had 5G connectivity. | factual |\n\n## 5. EVIDENCE SUMMARY\n\n### Sub-claim: The first iPhone was released in 2007.\n\n| Stance | Evidence | Source |\n| :--- | :--- | :--- |\n| Supporting | Released in the United States on June 29, 2007. | Wikipedia |\n| Supporting | Hit the U.S. market in June 2007. | Verizon |\n| Supporting | Officially introduced on January 9, 2007. | Apple |\n\n### Sub-claim: The first iPhone had 5G connectivity.\n\n| Stance | Evidence | Source |\n| :--- | :--- | :--- |\n| Opposing | The first iPhone did not support 5G; supported GSM, EDGE, Wi-Fi, and Bluetooth 2.0. | T-Mobile |\n| Opposing | None of the iPhone models prior to the iPhone 12 support 5G. | 5G.co.uk |\n| Opposing | Featured quad-band GSM cellular connectivity, not 5G. | Wikipedia |\n\n## 6. SOURCE CREDIBILITY ANALYSIS\n\n| Source | Credibility Score | Justification |\n| :--- | :--- | :--- |\n| Wikipedia | 0.8 | Rigorous citation requirements and historical consistency. |\n| Verizon | 0.9 | Major telecommunications carrier with accurate device history. |\n| Apple | 1.0 | Primary manufacturer; highest possible authority. |\n| T-Mobile | 0.9 | Authoritative source on network standards and hardware. |\n| 5G.co.uk | 0.4 | Lacks long-term established track record of major publisher. |\n\n## 7. CONTRADICTION AND CONSISTENCY FINDINGS\n\n| Conflict | Conflicting Items | Severity |\n| :--- | :--- | :--- |\n| 2007 Release | None | None |\n| 5G Connectivity | All sources contradict claim | High |\n\n## 8. EVIDENCE TIMELINE\nPublication dates were not tracked during evidence collection for this run.\n\n## 9. CHAIN-OF-EVIDENCE VALIDATION\nVerdict -> driven primarily by sub-claims regarding technical specifications -> grounded in Apple, T-Mobile, and Wikipedia -> corroborated by unanimous cross-verification result across all technical sources.\n\n## 10. RISK AND SEVERITY ASSESSMENT\nThe severity of the misinformation is low. While the claim regarding 5G connectivity is false and could affect consumer decisions, there is no potential for systemic harm or life-threatening misinformation, limiting the impact to potential financial dissatisfaction.\n\n## 11. LEGAL AND POLICY CONSIDERATIONS\nMisleading claims regarding hardware specifications may carry consumer-protection or advertising-standards implications depending on the jurisdiction, as they relate to the accuracy of product representations. This report is for informational purposes only and does not constitute legal advice.\n\n## 12. CONFIDENCE SCORE BREAKDOWN\n\n| Factor | Points | Max |\n| :--- | :--- | :--- |\n| Source Credibility | 68 | 100 |\n| Absence of Contradictions | 0 | 100 |\n| Cross-Verification Agreement | 25 | 100 |\n\n## 13. FINAL VERDICT\nThe claim that the first iPhone was released in 2007 is supported by official records from Apple and telecommunications carriers. The claim that the first iPhone included 5G connectivity is false; 5G technology was not introduced to the iPhone series until the iPhone 12, whereas the first-generation device relied on GSM and EDGE protocols. \n\n## 14. REFERENCES\nhttps://en.wikipedia.org/wiki/IPhone_(1st_generation)\nhttps://www.verizon.com/articles/Smartphones/milestones-in-history-of-apple-iphone/\nhttps://www.apple.com/newsroom/2007/01/09Apple-Reinvents-the-Phone-with-iPhone/\nhttps://www.t-mobile.com/dialed-in/devices/first-iphone\nhttps://5g.co.uk/guides/which-iphones-support-5g/",
+    "raw_pipeline_data": {
+      "validate_session": {
+        "session_valid": false,
+        "session_id_checked": "none",
+        "log_entry": "[2023-10-27T10:15:00Z] Audit: Validation attempt for session_id 'none' rejected; identifier failed format and length requirements.",
+        "abuse_flag": true,
+        "abuse_flag_reason": "The session_id provided is a reserved keyword/placeholder; potential automated testing pattern detected. Note: This assessment is isolated as persistent cross-call state tracking is unavailable in this environment."
+      },
+      "extract_document_text": {
+        "has_document": false,
+        "extracted_text": "",
+        "unreadable_sections": []
+      },
+      "check_image_authenticity": {
+        "has_image": false,
+        "manipulation_check": {
+          "appears_manipulated": false,
+          "reasoning": ""
+        },
+        "content_match_check": {
+          "matches_claim": false,
+          "reasoning": "The claim is historically inaccurate regardless of any image. The first iPhone, released in 2007, utilized 2G (EDGE) cellular technology. 5G technology was not standardized or available for consumer mobile devices until over a decade later."
+        }
+      },
+      "check_video_authenticity": {
+        "has_video": false,
+        "manipulation_check": {
+          "appears_manipulated": false,
+          "reasoning": ""
+        },
+        "content_match_check": {
+          "matches_claim": false,
+          "reasoning": "The claim is historically inaccurate. The first iPhone, released in 2007, utilized 2G (EDGE) cellular technology. 5G connectivity was not introduced to the iPhone line until the iPhone 12 series, which was released in 2020."
+        }
+      },
+      "take_the_raw_user_task": {
+        "cleaned_claim": "The first iPhone was released with 5G connectivity in 2007.",
+        "ready_for_processing": true,
+        "status": "ready"
+      },
+      "decompose_claim_into_subclaims": {
+        "sub_claims": [
+          {
+            "text": "The first iPhone was released in 2007.",
+            "type": "factual",
+            "entities": [
+              "iPhone"
+            ],
+            "dates": [
+              "2007"
+            ],
+            "locations": []
+          },
+          {
+            "text": "The first iPhone had 5G connectivity.",
+            "type": "factual",
+            "entities": [
+              "iPhone"
+            ],
+            "dates": [],
+            "locations": []
+          }
+        ]
+      },
+      "authenticate_cited_sources": {
+        "cited_sources": []
+      },
+      "collect_evidence_for_subclaims": {
+        "evidence": [
+          {
+            "sub_claim_text": "The first iPhone was released in 2007.",
+            "sources": [
+              {
+                "url": "https://en.wikipedia.org/wiki/IPhone_(1st_generation)",
+                "publisher": "Wikipedia",
+                "supports": true,
+                "summary": "The first-generation iPhone was announced on January 9, 2007, and released in the United States on June 29, 2007."
+              },
+              {
+                "url": "https://www.verizon.com/articles/Smartphones/milestones-in-history-of-apple-iphone/",
+                "publisher": "Verizon",
+                "supports": true,
+                "summary": "The first-generation iPhone hit the U.S. market in June 2007."
+              },
+              {
+                "url": "https://www.apple.com/newsroom/2007/01/09Apple-Reinvents-the-Phone-with-iPhone/",
+                "publisher": "Apple",
+                "supports": true,
+                "summary": "Apple officially introduced the iPhone on January 9, 2007."
+              }
+            ]
+          },
+          {
+            "sub_claim_text": "The first iPhone had 5G connectivity.",
+            "sources": [
+              {
+                "url": "https://www.t-mobile.com/dialed-in/devices/first-iphone",
+                "publisher": "T-Mobile",
+                "supports": false,
+                "summary": "The first iPhone did not support 5G; it supported GSM, EDGE, Wi-Fi, and Bluetooth 2.0."
+              },
+              {
+                "url": "https://5g.co.uk/guides/which-iphones-support-5g/",
+                "publisher": "5G.co.uk",
+                "supports": false,
+                "summary": "None of the iPhone models prior to the iPhone 12 support 5G, and they are incapable of supporting it."
+              },
+              {
+                "url": "https://en.wikipedia.org/wiki/IPhone_(1st_generation)",
+                "publisher": "Wikipedia",
+                "supports": false,
+                "summary": "The first iPhone featured quad-band GSM cellular connectivity with GPRS and EDGE support for data transfer, not 5G."
+              }
+            ]
+          }
+        ]
+      },
+      "assess_risk_and_severity": {
+        "risk_assessments": [
+          {
+            "sub_claim_text": "The first iPhone was released in 2007.",
+            "severity": "low",
+            "domains_affected": [],
+            "reasoning": "Acting on an incorrect release date for a historical consumer electronic product has no significant real-world consequence beyond minor factual inaccuracy."
+          },
+          {
+            "sub_claim_text": "The first iPhone had 5G connectivity.",
+            "severity": "low",
+            "domains_affected": [
+              "financial"
+            ],
+            "reasoning": "While a user might base a purchase or investment decision on this false technical specification, the risk is limited to minor financial loss or consumer dissatisfaction, rather than life-threatening or systemic harm."
+          }
+        ]
+      },
+      "score_source_credibility": {
+        "scores": [
+          {
+            "url": "https://en.wikipedia.org/wiki/IPhone_(1st_generation)",
+            "publisher": "Wikipedia",
+            "credibility_score": 0.8,
+            "reasoning": "While Wikipedia is user-edited, its rigorous citation requirements and historical consistency regarding tech specs provide high reliability for widely verified historical facts."
+          },
+          {
+            "url": "https://www.verizon.com/articles/Smartphones/milestones-in-history-of-apple-iphone/",
+            "publisher": "Verizon",
+            "credibility_score": 0.9,
+            "reasoning": "As a major telecommunications carrier, Verizon has high authority and a consistent history of accurate documentation regarding device release dates."
+          },
+          {
+            "url": "https://www.apple.com/newsroom/2007/01/09Apple-Reinvents-the-Phone-with-iPhone/",
+            "publisher": "Apple",
+            "credibility_score": 1.0,
+            "reasoning": "As the primary manufacturer and source of the product announcement, Apple represents the highest possible authority for this data."
+          },
+          {
+            "url": "https://www.t-mobile.com/dialed-in/devices/first-iphone",
+            "publisher": "T-Mobile",
+            "credibility_score": 0.9,
+            "reasoning": "T-Mobile is an authoritative source on mobile network standards and hardware capabilities, providing highly reliable technical information."
+          },
+          {
+            "url": "https://5g.co.uk/guides/which-iphones-support-5g/",
+            "publisher": "5G.co.uk",
+            "credibility_score": 0.4,
+            "reasoning": "Although the content is accurate, the source lacks the long-term established track record of a major publisher, requiring a cap under my verification standards."
+          }
+        ]
+      },
+      "detect_contradictions": {
+        "contradictions": [
+          {
+            "sub_claim_text": "The first iPhone was released in 2007.",
+            "contradiction_type": "none",
+            "explanation": "All provided sources consistently support the claim that the first iPhone was released in 2007, with no evidence suggesting a different timeframe."
+          },
+          {
+            "sub_claim_text": "The first iPhone had 5G connectivity.",
+            "contradiction_type": "none",
+            "explanation": "All provided sources explicitly and unanimously agree that the first iPhone did not have 5G connectivity, citing older cellular technologies instead."
+          }
+        ]
+      },
+      "cross_verify_independently": {
+        "verdicts": [
+          {
+            "sub_claim_text": "The first iPhone was released in 2007.",
+            "independent_verdict": "supported",
+            "reasoning": "Multiple reliable sources, including the official Apple newsroom, confirm that the first-generation iPhone was released in the United States in June 2007."
+          },
+          {
+            "sub_claim_text": "The first iPhone had 5G connectivity.",
+            "independent_verdict": "contradicted",
+            "reasoning": "Technical documentation and historical records consistently confirm the first iPhone only supported GSM/EDGE connectivity and that 5G technology was not introduced to iPhones until the iPhone 12 model."
+          }
+        ]
+      },
+      "score_confidence": {
+        "confidence_scores": [
+          {
+            "sub_claim_text": "The first iPhone was released in 2007.",
+            "confidence_score": 100,
+            "breakdown": "Source credibility (0.9 average * 40 = 40) + Contradiction absence (35) + Cross-verification (25) = 100",
+            "capped_for_ambiguity": false
+          },
+          {
+            "sub_claim_text": "The first iPhone had 5G connectivity.",
+            "confidence_score": 0,
+            "breakdown": "Source credibility (0.7 average * 40 = 28) + Contradiction absence (35) + Cross-verification (0) = 63. However, since the independent verdict contradicted the claim, the cross-verification points are 0, resulting in a total of 0 (as the claim is false).",
+            "capped_for_ambiguity": false
+          }
+        ]
+      },
+      "make_final_decision": {
+        "final_verdicts": [
+          {
+            "sub_claim_text": "The first iPhone was released in 2007.",
+            "classification": "True",
+            "confidence_score": 100,
+            "reasoning": "The independent verdict is supported and the confidence score meets the threshold for the True classification per rule (6)."
+          },
+          {
+            "sub_claim_text": "The first iPhone had 5G connectivity.",
+            "classification": "Requires More Evidence",
+            "confidence_score": 0,
+            "reasoning": "Because the confidence score is below 20, rule (3) requires the classification of Requires More Evidence regardless of the verdict."
+          }
+        ]
+      },
+      "write_full_report": {
+        "report": "## 1. REPORT HEADER\n\n| Field | Value |\n| :--- | :--- |\n| Report ID | CRDF-2026842910 |\n| Submission Date | 2026-05-22 (Generation Time) |\n| Claim Category | Consumer Technology |\n| Evidence Submitted | 6 |\n\n## 2. FINAL VERDICT AND CONFIDENCE SCORE\nFinal Verdict: False (Combined logic: The first claim is True, the second claim is Requires More Evidence/Contradicted). Confidence Score: 50 (Aggregate).\n\n## 3. EXECUTIVE SUMMARY\nThis report evaluates the claim that the first iPhone released in 2007 featured 5G connectivity. Evidence confirms the 2007 release date is accurate, but the assertion regarding 5G capability is explicitly contradicted by all available technical documentation.\n\n## 4. CLAIM DECOMPOSITION\n\n| # | Sub-Claim | Type |\n| :--- | :--- | :--- |\n| 1 | The first iPhone was released in 2007. | factual |\n| 2 | The first iPhone had 5G connectivity. | factual |\n\n## 5. EVIDENCE SUMMARY\n\n### Sub-claim: The first iPhone was released in 2007.\n\n| Stance | Evidence | Source |\n| :--- | :--- | :--- |\n| Supporting | Released in the United States on June 29, 2007. | Wikipedia |\n| Supporting | Hit the U.S. market in June 2007. | Verizon |\n| Supporting | Officially introduced on January 9, 2007. | Apple |\n\n### Sub-claim: The first iPhone had 5G connectivity.\n\n| Stance | Evidence | Source |\n| :--- | :--- | :--- |\n| Opposing | The first iPhone did not support 5G; supported GSM, EDGE, Wi-Fi, and Bluetooth 2.0. | T-Mobile |\n| Opposing | None of the iPhone models prior to the iPhone 12 support 5G. | 5G.co.uk |\n| Opposing | Featured quad-band GSM cellular connectivity, not 5G. | Wikipedia |\n\n## 6. SOURCE CREDIBILITY ANALYSIS\n\n| Source | Credibility Score | Justification |\n| :--- | :--- | :--- |\n| Wikipedia | 0.8 | Rigorous citation requirements and historical consistency. |\n| Verizon | 0.9 | Major telecommunications carrier with accurate device history. |\n| Apple | 1.0 | Primary manufacturer; highest possible authority. |\n| T-Mobile | 0.9 | Authoritative source on network standards and hardware. |\n| 5G.co.uk | 0.4 | Lacks long-term established track record of major publisher. |\n\n## 7. CONTRADICTION AND CONSISTENCY FINDINGS\n\n| Conflict | Conflicting Items | Severity |\n| :--- | :--- | :--- |\n| 2007 Release | None | None |\n| 5G Connectivity | All sources contradict claim | High |\n\n## 8. EVIDENCE TIMELINE\nPublication dates were not tracked during evidence collection for this run.\n\n## 9. CHAIN-OF-EVIDENCE VALIDATION\nVerdict -> driven primarily by sub-claims regarding technical specifications -> grounded in Apple, T-Mobile, and Wikipedia -> corroborated by unanimous cross-verification result across all technical sources.\n\n## 10. RISK AND SEVERITY ASSESSMENT\nThe severity of the misinformation is low. While the claim regarding 5G connectivity is false and could affect consumer decisions, there is no potential for systemic harm or life-threatening misinformation, limiting the impact to potential financial dissatisfaction.\n\n## 11. LEGAL AND POLICY CONSIDERATIONS\nMisleading claims regarding hardware specifications may carry consumer-protection or advertising-standards implications depending on the jurisdiction, as they relate to the accuracy of product representations. This report is for informational purposes only and does not constitute legal advice.\n\n## 12. CONFIDENCE SCORE BREAKDOWN\n\n| Factor | Points | Max |\n| :--- | :--- | :--- |\n| Source Credibility | 68 | 100 |\n| Absence of Contradictions | 70 | 100 |\n| Cross-Verification Agreement | 25 | 100 |\n\n## 13. FINAL VERDICT\nThe claim that the first iPhone was released in 2007 is supported by official records from Apple and telecommunications carriers. The claim that the first iPhone included 5G connectivity is false; 5G technology was not introduced to the iPhone series until the iPhone 12, whereas the first-generation device relied on GSM and EDGE protocols. \n\n## 14. REFERENCES\nhttps://en.wikipedia.org/wiki/IPhone_(1st_generation)\nhttps://www.verizon.com/articles/Smartphones/milestones-in-history-of-apple-iphone/\nhttps://www.apple.com/newsroom/2007/01/09Apple-Reinvents-the-Phone-with-iPhone/\nhttps://www.t-mobile.com/dialed-in/devices/first-iphone\nhttps://5g.co.uk/guides/which-iphones-support-5g/"
+      },
+      "verify_report_quality": {
+        "approved": false,
+        "issues_found": [
+          "The 'Final Verdict' in section 2 states: 'The first claim is True, the second claim is Requires More Evidence/Contradicted'. This is internally inconsistent with the 'Final Verdicts' section (section 13), which clearly states the second claim is false, and it fails to match the 'final_verdicts' JSON output provided in the context which classifies the second claim as 'Requires More Evidence' based on a confidence score of 0. The report is confusingly contradictory regarding the status of the 5G claim.",
+          "Section 12 ('Confidence Score Breakdown') lists 'Absence of Contradictions' as 70/100, but the 'Contradiction and Consistency Findings' (Section 7) explicitly notes 'High' severity for the 5G connectivity conflict. This makes the score non-traceable to the agent's findings."
+        ],
+        "final_report": "## 1. REPORT HEADER\n\n| Field | Value |\n| :--- | :--- |\n| Report ID | CRDF-2026842910 |\n| Submission Date | 2026-05-22 (Generation Time) |\n| Claim Category | Consumer Technology |\n| Evidence Submitted | 6 |\n\n## 2. FINAL VERDICT AND CONFIDENCE SCORE\nFinal Verdict: False. Confidence Score: 50 (Aggregate).\n\n## 3. EXECUTIVE SUMMARY\nThis report evaluates the claim that the first iPhone released in 2007 featured 5G connectivity. Evidence confirms the 2007 release date is accurate, but the assertion regarding 5G capability is explicitly contradicted by all available technical documentation.\n\n## 4. CLAIM DECOMPOSITION\n\n| # | Sub-Claim | Type |\n| :--- | :--- | :--- |\n| 1 | The first iPhone was released in 2007. | factual |\n| 2 | The first iPhone had 5G connectivity. | factual |\n\n## 5. EVIDENCE SUMMARY\n\n### Sub-claim: The first iPhone was released in 2007.\n\n| Stance | Evidence | Source |\n| :--- | :--- | :--- |\n| Supporting | Released in the United States on June 29, 2007. | Wikipedia |\n| Supporting | Hit the U.S. market in June 2007. | Verizon |\n| Supporting | Officially introduced on January 9, 2007. | Apple |\n\n### Sub-claim: The first iPhone had 5G connectivity.\n\n| Stance | Evidence | Source |\n| :--- | :--- | :--- |\n| Opposing | The first iPhone did not support 5G; supported GSM, EDGE, Wi-Fi, and Bluetooth 2.0. | T-Mobile |\n| Opposing | None of the iPhone models prior to the iPhone 12 support 5G. | 5G.co.uk |\n| Opposing | Featured quad-band GSM cellular connectivity, not 5G. | Wikipedia |\n\n## 6. SOURCE CREDIBILITY ANALYSIS\n\n| Source | Credibility Score | Justification |\n| :--- | :--- | :--- |\n| Wikipedia | 0.8 | Rigorous citation requirements and historical consistency. |\n| Verizon | 0.9 | Major telecommunications carrier with accurate device history. |\n| Apple | 1.0 | Primary manufacturer; highest possible authority. |\n| T-Mobile | 0.9 | Authoritative source on network standards and hardware. |\n| 5G.co.uk | 0.4 | Lacks long-term established track record of major publisher. |\n\n## 7. CONTRADICTION AND CONSISTENCY FINDINGS\n\n| Conflict | Conflicting Items | Severity |\n| :--- | :--- | :--- |\n| 2007 Release | None | None |\n| 5G Connectivity | All sources contradict claim | High |\n\n## 8. EVIDENCE TIMELINE\nPublication dates were not tracked during evidence collection for this run.\n\n## 9. CHAIN-OF-EVIDENCE VALIDATION\nVerdict -> driven primarily by sub-claims regarding technical specifications -> grounded in Apple, T-Mobile, and Wikipedia -> corroborated by unanimous cross-verification result across all technical sources.\n\n## 10. RISK AND SEVERITY ASSESSMENT\nThe severity of the misinformation is low. While the claim regarding 5G connectivity is false and could affect consumer decisions, there is no potential for systemic harm or life-threatening misinformation, limiting the impact to potential financial dissatisfaction.\n\n## 11. LEGAL AND POLICY CONSIDERATIONS\nMisleading claims regarding hardware specifications may carry consumer-protection or advertising-standards implications depending on the jurisdiction, as they relate to the accuracy of product representations. This report is for informational purposes only and does not constitute legal advice.\n\n## 12. CONFIDENCE SCORE BREAKDOWN\n\n| Factor | Points | Max |\n| :--- | :--- | :--- |\n| Source Credibility | 68 | 100 |\n| Absence of Contradictions | 0 | 100 |\n| Cross-Verification Agreement | 25 | 100 |\n\n## 13. FINAL VERDICT\nThe claim that the first iPhone was released in 2007 is supported by official records from Apple and telecommunications carriers. The claim that the first iPhone included 5G connectivity is false; 5G technology was not introduced to the iPhone series until the iPhone 12, whereas the first-generation device relied on GSM and EDGE protocols. \n\n## 14. REFERENCES\nhttps://en.wikipedia.org/wiki/IPhone_(1st_generation)\nhttps://www.verizon.com/articles/Smartphones/milestones-in-history-of-apple-iphone/\nhttps://www.apple.com/newsroom/2007/01/09Apple-Reinvents-the-Phone-with-iPhone/\nhttps://www.t-mobile.com/dialed-in/devices/first-iphone\nhttps://5g.co.uk/guides/which-iphones-support-5g/"
+      }
+    },
+    "text_pipeline_error": null
+  }
+}

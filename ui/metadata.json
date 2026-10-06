@@ -1,0 +1,6 @@
+{
+  "name": "CRDF Authenticity Agent",
+  "description": "An Image & Visual Authenticity Agent that assesses images for signs of manipulation, out-of-context reuse, or fabrication.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

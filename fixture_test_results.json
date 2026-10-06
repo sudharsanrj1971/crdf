@@ -1,0 +1,46 @@
+[
+  {
+    "fixture_name": "1. clean_photo.jpg",
+    "file": "tests\\fixtures\\images\\clean_photo.jpg",
+    "claim_submitted": "The original Apple iPhone 2G featured a metallic and glass multi-touch body.",
+    "intended_case": "Clean, unmanipulated image paired with a true/coherent factual claim.",
+    "appears_manipulated": false,
+    "manipulation_reasoning": "The image exhibits consistent light source reflections across the metallic bezel and glass surface, indicating a natural studio lighting setup. There are no signs of cloning artifacts, pixel-level compositing seams, or unnatural hard edges at the intersection of the screen and the chassis, suggesting the image is a high-quality, authentic product photograph.",
+    "matches_claim": true,
+    "content_match_reasoning": "The image clearly depicts the original iPhone 2G, characterized by its iconic rounded aluminum back plate and glass front panel. The visible design elements\u2014the silver metallic casing combined with the flat glass multi-touch screen\u2014directly support the claim that the device featured a metallic and glass multi-touch body.",
+    "execution_time_sec": 27.59
+  },
+  {
+    "fixture_name": "2. spliced_photo.jpg",
+    "file": "tests\\fixtures\\images\\spliced_photo.jpg",
+    "claim_submitted": "Breaking News: Official document confirming secret satellite launch was leaked.",
+    "intended_case": "Digitally doctored/spliced image paired with a plausible news/leak claim.",
+    "appears_manipulated": true,
+    "manipulation_reasoning": "The image exhibits clear signs of compositing. Specifically, there is a visible 'halo' or edge blur around the document borders that does not match the surrounding background depth of field. Furthermore, the lighting temperature on the document surface is inconsistent with the ambient light source in the room, and there is evidence of cloning artifacts along the bottom right corner where pixels repeat in a non-natural pattern.",
+    "matches_claim": false,
+    "content_match_reasoning": "The document depicted in the image contains generic filler text and non-technical iconography that lacks the formal structural requirements of an official launch manifest or government classification stamps. It does not provide any verifiable information regarding a secret satellite launch, nor does it bear any recognizable official letterhead or agency seal that would support such a claim.",
+    "execution_time_sec": 17.37
+  },
+  {
+    "fixture_name": "3. mismatched_context_photo.jpg",
+    "file": "tests\\fixtures\\images\\mismatched_context_photo.jpg",
+    "claim_submitted": "The Eiffel Tower in Paris, France was built in the 15th century by Renaissance architects.",
+    "intended_case": "Authentic photo of Eiffel Tower paired with an inaccurate/mismatched historical claim.",
+    "appears_manipulated": false,
+    "manipulation_reasoning": "Upon forensic inspection of the image, the lighting across the Eiffel Tower and the surrounding Champ de Mars is consistent with natural overcast daylight. There are no detectable cloning artifacts, repeating patterns in the sky or grass, or unnatural hard edges around the structural ironwork of the tower that would suggest compositing or digital tampering.",
+    "matches_claim": false,
+    "content_match_reasoning": "The claim states that the Eiffel Tower was built in the 15th century by Renaissance architects. This is historically inaccurate. Construction of the Eiffel Tower began in 1887 and was completed in 1889 for the 1889 World's Fair, designed by Gustave Eiffel's engineering firm during the Industrial Age, not the Renaissance period. While the image accurately depicts the Eiffel Tower, the claim attached to it is factually false.",
+    "execution_time_sec": 5.36
+  },
+  {
+    "fixture_name": "4. low_quality_ambiguous.jpg",
+    "file": "tests\\fixtures\\images\\low_quality_ambiguous.jpg",
+    "claim_submitted": "UFO flying saucer spotted hovering over military base.",
+    "intended_case": "Low quality, blurry image paired with an ambiguous UFO/extra-terrestrial claim.",
+    "appears_manipulated": true,
+    "manipulation_reasoning": "The image exhibits classic signs of digital compositing. Specifically, the object identified as a 'UFO' shows a distinct lack of atmospheric perspective compared to the background, and there is a noticeable halo/soft-fringe effect around its edges, suggesting it was cut and pasted onto the original base image. Furthermore, the lighting source on the object is inconsistent with the ambient light hitting the ground structures.",
+    "matches_claim": false,
+    "content_match_reasoning": "Even if the image were authentic, the visual content shows a blurred, metallic-looking disc-shaped object over an area that does not possess any verifiable visual markers of a 'military base' (such as hangars, perimeter fencing, or specific defense infrastructure). The object is generic and lacks any context that would substantiate the claim of it being at a military installation.",
+    "execution_time_sec": 9.75
+  }
+]
