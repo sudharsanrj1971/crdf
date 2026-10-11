@@ -20,6 +20,7 @@ multimodal summary folded in, same as before - so you are never left
 without a way to finish the run.
 """
 
+import patch_llm_retry
 import argparse
 import json
 import sys
@@ -65,31 +66,43 @@ def build_multimodal_summary(image_result: dict, video_result: dict, document_re
     return "\n".join(lines)
 
 
-def run_text_pipeline_direct(claim: str, session_id: str) -> tuple[str | None, str | None]:
+def run_text_pipeline_direct(
+    claim: str, 
+    session_id: str, 
+    multimodal_summary_text: str = "",
+    image_file: str = "none",
+    video_file: str = "none",
+    document_file: str = "none"
+) -> tuple[str | None, dict | None, str | None]:
     """Load and run crew.jsonc directly via CrewAI's Python API, bypassing
-    the interactive CLI. Returns (final_report_text, error_message).
-    Exactly one of the two will be non-None."""
+    the interactive CLI. Returns (final_report_text, raw_pipeline_data, error_message).
+    Exactly one of final_report_text or error_message will be non-None."""
     try:
         from crewai.project.crew_loader import load_crew
     except ImportError as e:
-        return None, f"Could not import load_crew from this CrewAI version: {e}"
+        return None, None, f"Could not import load_crew from this CrewAI version: {e}"
 
     crew_path = Path("crew.jsonc")
     if not crew_path.is_file():
-        return None, f"crew.jsonc not found at {crew_path.resolve()}"
+        return None, None, f"crew.jsonc not found at {crew_path.resolve()}"
+
+    # Inject multimodal context into the claim
+    claim_with_context = claim
+    if multimodal_summary_text:
+        claim_with_context = f"Claim: {claim}\n\nMultimodal Context:\n{multimodal_summary_text}"
 
     inputs = {
-        "claim": claim,
-        "document_file": "none",
-        "image_file": "none",
-        "video_file": "none",
+        "claim": claim_with_context,
+        "document_file": document_file,
+        "image_file": image_file,
+        "video_file": video_file,
         "session_id": session_id,
     }
 
     try:
         loaded = load_crew(crew_path)
     except Exception as e:
-        return None, f"load_crew() failed: {e}"
+        return None, None, f"load_crew() failed: {e}"
 
     if isinstance(loaded, tuple):
         crew_obj = loaded[0]
@@ -104,7 +117,48 @@ def run_text_pipeline_direct(claim: str, session_id: str) -> tuple[str | None, s
     try:
         result = crew_obj.kickoff(inputs=inputs)
     except Exception as e:
-        return None, f"crew.kickoff() failed: {e}"
+        return None, None, f"crew.kickoff() failed: {e}"
+
+    # Extract raw pipeline data for all tasks
+    raw_pipeline_data = {}
+    for idx, task_output in enumerate(getattr(result, "tasks_output", [])):
+        t_name = getattr(task_output, "name", None) or f"task_{idx}"
+        t_raw = getattr(task_output, "raw", "") or ""
+        t_cleaned = t_raw.strip()
+        if t_cleaned.startswith("```"):
+            parts = t_cleaned.split("```")
+            if len(parts) >= 2:
+                t_cleaned = parts[1]
+            else:
+                t_cleaned = t_cleaned[3:]  # Strip leading ``` and use as-is
+            if t_cleaned.startswith("json"):
+                t_cleaned = t_cleaned[4:]
+            t_cleaned = t_cleaned.strip()
+        try:
+            t_parsed = json.loads(t_cleaned)
+            raw_pipeline_data[t_name] = t_parsed
+        except Exception:
+            raw_pipeline_data[t_name] = t_raw
+
+    # Check if claim_intake_specialist flagged the claim as requiring clarification
+    intake_data = raw_pipeline_data.get("take_the_raw_user_task")
+    if isinstance(intake_data, dict):
+        ready = intake_data.get("ready_for_processing")
+        status = intake_data.get("status")
+        if ready is False or status in ("needs_clarification", "rejected"):
+            question = (
+                intake_data.get("clarification_question")
+                or intake_data.get("reasoning")
+                or "Please specify missing details (such as names, dates, or locations)."
+            )
+            clarification_report = (
+                "## CLAIM REQUIRES CLARIFICATION\n\n"
+                "**The submitted claim is ambiguous or underspecified and cannot be evaluated by the fact-checking pipeline.**\n\n"
+                f"> **Clarification Required:** {question}\n\n"
+                "Please resubmit your claim with additional specific details (such as names, dates, or locations)."
+            )
+            filtered_raw_data = {"take_the_raw_user_task": intake_data}
+            return clarification_report, filtered_raw_data, None
 
     # Don't trust str(result) - it returns whichever task ran LAST in
     # sequence, not necessarily the actual final report. Explicitly find
@@ -120,18 +174,22 @@ def run_text_pipeline_direct(claim: str, session_id: str) -> tuple[str | None, s
 
     if report_task_output is None:
         for task_output in getattr(result, "tasks_output", []):
-            if "final_report" in (task_output.raw or ""):
+            if "final_report" in (getattr(task_output, "raw", "") or ""):
                 report_task_output = task_output
                 break
 
     if report_task_output is None:
-        return None, "Could not locate verify_report_quality task output in crew result."
+        return None, raw_pipeline_data, "Could not locate verify_report_quality task output in crew result."
 
     raw = report_task_output.raw
 
     cleaned = raw.strip()
     if cleaned.startswith("```"):
-        cleaned = cleaned.split("```")[1]
+        parts = cleaned.split("```")
+        if len(parts) >= 2:
+            cleaned = parts[1]
+        else:
+            cleaned = cleaned[3:]  # Strip leading ``` and use as-is
         if cleaned.startswith("json"):
             cleaned = cleaned[4:]
         cleaned = cleaned.strip()
@@ -140,11 +198,11 @@ def run_text_pipeline_direct(claim: str, session_id: str) -> tuple[str | None, s
         parsed = json.loads(cleaned)
         final_report = parsed.get("final_report")
         if final_report:
-            return final_report, None
+            return final_report, raw_pipeline_data, None
     except (json.JSONDecodeError, AttributeError):
         pass
 
-    return raw, None
+    return raw, raw_pipeline_data, None
 
 
 def print_manual_fallback_instructions(claim: str, session_id: str, multimodal_summary_text: str, error: str) -> None:
@@ -185,7 +243,14 @@ def main():
     )
 
     print("\n=== Step 2: Running text pipeline (automated) ===", file=sys.stderr)
-    report_text, error = run_text_pipeline_direct(args.claim, args.session_id)
+    report_text, raw_pipeline_data, error = run_text_pipeline_direct(
+        args.claim, 
+        args.session_id, 
+        multimodal_summary_text,
+        args.image,
+        args.video,
+        args.document
+    )
 
     combined = {
         "claim": args.claim,
@@ -196,6 +261,7 @@ def main():
         },
         "multimodal_summary_text": multimodal_summary_text,
         "text_pipeline_report": report_text,
+        "raw_pipeline_data": raw_pipeline_data,
         "text_pipeline_error": error,
     }
 
