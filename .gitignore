@@ -10,3 +10,8 @@ build/
 *.log
 *.bak
 output/
+
+*.bak2
+crew.log.txt
+full_run_output.txt
+test_output.txt
