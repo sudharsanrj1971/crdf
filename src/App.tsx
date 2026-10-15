@@ -578,7 +578,7 @@ export default function App() {
 
       {/* ── Sticky Glass Header ── */}
       <header className="glass-header sticky top-0 z-30 transition-[background-color,border-color] duration-300">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
+        <div className="crdf-container py-3.5 flex flex-wrap items-center justify-between gap-4 flex-nowrap overflow-x-hidden">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -592,7 +592,7 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-lg sm:text-xl font-bold tracking-tight text-[var(--text-primary)] leading-tight">CRDF System</h1>
-              <p className="text-xs text-[var(--text-muted)] font-medium">Claim vs Reality Determination Framework</p>
+              <p className="text-xs text-[var(--text-muted)] font-medium hidden sm:block">Claim vs Reality Determination Framework</p>
             </div>
           </div>
           <div className="flex items-center flex-wrap gap-2.5">
@@ -631,7 +631,7 @@ export default function App() {
               aria-label="Open Recent Analyses History"
               className="glass-pill hidden md:flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
             >
-              <Bookmark className="w-3.5 h-3.5" /> Recent History ({history.length})
+              <Bookmark className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Recent History ({history.length})</span>
             </button>
             <button
               onClick={() => setDarkMode(!darkMode)}
@@ -648,34 +648,32 @@ export default function App() {
                 aria-label="Start new analysis"
                 className="glass-pill text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] font-semibold px-3 py-1.5 rounded-full cursor-pointer"
               >
-                ← New Analysis
+                <span>←</span> <span className="hidden sm:inline">New Analysis</span>
               </button>
             )}
           </div>
         </div>
       </header>
 
-      {/* ── Main Container: Shared max-w-6xl with 2-Column Grid ── */}
-      <div className="flex-1 flex max-w-6xl mx-auto w-full px-4 sm:px-6 py-8 relative">
-        {/* History Sidebar */}
-        <AnimatePresence>
-          {sidebarOpen && (
-            <>
-              {/* Backdrop for mobile */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setSidebarOpen(false)}
-                className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-40 md:hidden"
-              />
-              <motion.aside
-                initial={{ x: -320, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: -320, opacity: 0 }}
-                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="fixed md:sticky top-[68px] h-[calc(100vh-68px)] w-80 glass-card rounded-r-[var(--radius-xl)] md:rounded-[var(--radius-xl)] z-50 flex flex-col shadow-2xl md:shadow-lg mr-6 mb-6"
-              >
+      {/* ── Slide-over Recent Analyses Drawer ── */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSidebarOpen(false)}
+              className="fixed inset-0 bg-slate-950/50 backdrop-blur-md z-50"
+            />
+            <motion.aside
+              initial={{ x: "-100%", opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: "-100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              style={{ width: "min(400px, 100vw)" }}
+              className="fixed inset-y-0 left-0 glass-card rounded-r-[var(--radius-xl)] z-50 flex flex-col shadow-2xl overflow-hidden"
+            >
                 <div className="p-4 border-b border-[var(--glass-border-subtle)] flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <History className="w-4 h-4 text-[var(--accent)]" />
@@ -776,8 +774,8 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        {/* ── Main Content Area ── */}
-        <div className="flex-1 w-full space-y-6">
+      {/* ── Main Content Area (Shared crdf-container) ── */}
+      <div className="flex-1 crdf-container py-8 space-y-6 relative">
           {/* Mock Mode Dismissible Notice */}
           {mockMode && !mockNoticeDismissed && (
             <div className="p-4 rounded-[var(--radius-lg)] bg-[var(--status-warning-bg)] border border-[var(--status-warning-border)] text-[var(--status-warning)] text-sm flex items-start sm:items-center justify-between gap-3 shadow-xs">
@@ -808,10 +806,10 @@ export default function App() {
           )}
 
           {/* ── Two-Column Desktop Grid (Left ~60%, Right ~40%) / Single-Column Mobile ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          <div className="main-grid">
             
             {/* ── Left Column (~60%): Analyze a Claim Glass Card ── */}
-            <div className="lg:col-span-7 glass-card p-6 sm:p-8 space-y-6">
+            <div className="glass-card space-y-6 min-w-0">
               {/* Eyebrow & Card Title */}
               <div>
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-indigo-500/15 via-cyan-500/15 to-purple-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-500/30 mb-2.5">
@@ -819,7 +817,7 @@ export default function App() {
                   <span>Multi-agent verification</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">
+                  <h2 className="text-[clamp(1.75rem,1.2rem+1.8vw,2.5rem)] font-bold tracking-tight text-[var(--text-primary)]">
                     Analyze a Claim
                   </h2>
                   {history.length > 0 && !sidebarOpen && (
@@ -846,7 +844,7 @@ export default function App() {
                   value={claim}
                   onChange={(e) => setClaim(e.target.value)}
                   placeholder="e.g. 'This photo was taken during the wildfire in California last month.'"
-                  className="w-full h-32 p-4 rounded-[var(--radius-md)] glass-input-inset text-[15px] leading-relaxed resize-none"
+                  className="w-full min-h-[180px] p-4 rounded-[var(--radius-md)] glass-input-inset text-[15px] leading-relaxed resize-y"
                   maxLength={2000}
                 />
                 <div className="flex items-center justify-between text-xs text-[var(--text-muted)]">
@@ -871,7 +869,7 @@ export default function App() {
                   <span>Supporting Media</span>
                   <span className="text-[10px] lowercase text-[var(--text-placeholder)]">(optional attachments)</span>
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="dropzones-grid">
                   <div>
                     <span className="block text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-1.5 flex items-center gap-1">
                       <FileSearch className="w-3.5 h-3.5 text-indigo-500" /> Image
@@ -1006,8 +1004,8 @@ export default function App() {
               </div>
             </div>
 
-            {/* ── Right Column (~40%): Sticky Results Glass Panel ── */}
-            <div className="lg:col-span-5 lg:sticky lg:top-24 space-y-6">
+            {/* ── Right Column: Sticky Results Panel ── */}
+            <div className="sticky-results-panel min-w-0 space-y-6">
               
               {/* 1. Empty State (Before a run) */}
               {!response && !loading && (
@@ -1130,7 +1128,6 @@ export default function App() {
             </div>
           </div>
         </div>
-      </div>
 
       {/* ── PDF Viewer Modal (Glassmorphic) ── */}
       <AnimatePresence>
