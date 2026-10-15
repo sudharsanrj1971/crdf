@@ -141,27 +141,27 @@ export function AssessmentResult({ result }: AssessmentResultProps) {
         </div>
 
         {/* Context Consistency */}
-        <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col justify-center">
-          <div className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-1">Context Analysis</div>
+        <div className="p-6 rounded-[var(--radius-lg)] border border-[var(--glass-border-subtle)] bg-[var(--glass-bg-subtle)] flex flex-col justify-center">
+          <div className="text-xs text-[var(--text-muted)] font-semibold uppercase tracking-wider mb-1">Context Analysis</div>
           <div className="flex items-center gap-2">
             {context.icon}
-            <span className={`font-medium ${context.color}`}>{context.label}</span>
+            <span className={`font-semibold ${context.color}`}>{context.label}</span>
           </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+          <p className="text-xs text-[var(--text-secondary)] mt-2 leading-relaxed">
             Assessment of whether the visual evidence aligns with the provided claim.
           </p>
         </div>
       </div>
 
       {/* Context Match Reasoning */}
-      <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-        <div className="flex items-center gap-2 mb-3">
-          <h3 className="text-base font-semibold text-slate-800 dark:text-slate-200">Context Match Reasoning</h3>
+      <div className="p-5 rounded-[var(--radius-lg)] border border-[var(--glass-border-subtle)] bg-[var(--glass-bg-subtle)]">
+        <div className="flex items-center gap-2 mb-2">
+          <h3 className="text-xs uppercase tracking-wider font-bold text-[var(--text-muted)]">Context Match Reasoning</h3>
         </div>
         {result.content_match_check?.reasoning ? (
-          <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{result.content_match_check.reasoning}</p>
+          <p className="text-xs text-[var(--text-secondary)] leading-relaxed">{result.content_match_check.reasoning}</p>
         ) : (
-          <p className="text-sm text-slate-400 dark:text-slate-500 italic">No context match reasoning available.</p>
+          <p className="text-xs text-[var(--text-muted)] italic">No context match reasoning available.</p>
         )}
       </div>
     </motion.div>

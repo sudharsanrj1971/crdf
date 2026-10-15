@@ -12,12 +12,8 @@ export default defineConfig(() => {
       },
     },
     server: {
-      port: 5173,
-      proxy: {
-        '/analyze': 'http://127.0.0.1:8000',
-        '/generate_pdf': 'http://127.0.0.1:8000',
-        '/health': 'http://127.0.0.1:8000',
-      },
+      host: '0.0.0.0',
+      port: 3000,
       hmr: process.env.DISABLE_HMR !== 'true',
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
