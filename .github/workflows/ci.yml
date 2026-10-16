@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: '20'
       - name: Install Python deps
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-dev.txt
       - name: Install Node deps
         run: npm ci
       - name: TypeScript lint
@@ -26,11 +26,7 @@ jobs:
       - name: Frontend build
         run: npx vite build
       - name: Python tests
-        run: pytest test_edge_cases.py -v --tb=short
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
-        continue-on-error: true  # Tests require real API keys
+        run: pytest tests -v --tb=short
 
   docker-build:
     runs-on: ubuntu-latest
@@ -48,6 +44,10 @@ jobs:
             -e SERPER_API_KEY=test \
             -p 8000:8000 \
             crdf-backend:${{ github.sha }}
-          sleep 10
+          for i in $(seq 1 15); do
+            curl -fs http://localhost:8000/health && break
+            sleep 2
+          done
+          curl -f http://localhost:8000/health
           docker logs test-backend
           docker stop test-backend

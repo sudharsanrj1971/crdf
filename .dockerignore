@@ -19,7 +19,6 @@ uv.lock
 bun.lock
 output/
 tests/
-*.png
 *.jpg
 claim_a_result.json
 claim_b_result.json
@@ -28,4 +27,5 @@ fixture_test_results.json
 full_run_output.txt
 test_output.txt
 result_false_claim.json
+*.png
 test_edited_image.png

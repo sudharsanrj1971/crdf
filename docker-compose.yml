@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   backend:
     build:
@@ -7,7 +5,8 @@ services:
       dockerfile: Dockerfile.backend
     container_name: crdf-backend
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       - PYTHONPATH=/app
       - PYTHONIOENCODING=utf-8
@@ -18,6 +17,9 @@ services:
       - GROQ_API_KEY=${GROQ_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - CORS_ORIGINS=${CORS_ORIGINS}
+      - CRDF_API_KEY=${CRDF_API_KEY}
+      - CRDF_MAX_CONCURRENT=${CRDF_MAX_CONCURRENT:-2}
+      - CRDF_MAX_RPM=${CRDF_MAX_RPM}
     ports:
       - '8000:8000'
     networks:

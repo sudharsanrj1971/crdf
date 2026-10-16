@@ -1,3 +1,4 @@
+import io
 import os
 import tempfile
 from fastapi.testclient import TestClient
@@ -71,11 +72,14 @@ def test_generate_pdf_needs_clarification():
 
 def test_file_hygiene():
     temp_dir = tempfile.gettempdir()
+    for f in os.listdir(temp_dir):
+        if f.startswith("crdf_rep_"):
+            os.remove(os.path.join(temp_dir, f))
     payload = {"claim": "Hygiene test claim"}
     response = client.post("/generate_pdf", json=payload)
     assert response.status_code == 200
-    tmp_files_after = [f for f in os.listdir(temp_dir) if "crdf" in f.lower() and f.endswith(".tmp")]
-    assert len(tmp_files_after) == 0, "Leftover .tmp files found!"
+    leftovers = [f for f in os.listdir(temp_dir) if f.startswith("crdf_rep_") or ("crdf" in f.lower() and f.endswith(".tmp"))]
+    assert len(leftovers) == 0, f"Leftover temp files found: {leftovers}"
     print("PASS: test_file_hygiene")
 
 if __name__ == "__main__":
@@ -89,3 +93,63 @@ if __name__ == "__main__":
     test_generate_pdf_needs_clarification()
     test_file_hygiene()
     print("ALL TESTS PASSED SUCCESSFULLY!")
+
+
+# ----------------------------------------------------------------- content of the report (not just "a PDF came back")
+def _pdf_text(raw: bytes) -> str:
+    from pypdf import PdfReader
+    return "\n".join(p.extract_text() or "" for p in PdfReader(io.BytesIO(raw)).pages)
+
+
+REPORT_MD = """## (1) REPORT HEADER
+
+| Field | Value |
+| :--- | :--- |
+| Report ID | CRDF-2026-000777 |
+| Submission Date | [Reflects generation time] |
+| Claim Category | Geography |
+
+## (2) FINAL VERDICT AND CONFIDENCE SCORE
+
+Final Verdict: False | Confidence Score: 91%
+
+## (3) EXECUTIVE SUMMARY
+
+The Zyxwv Tower claim is **false**: it is 330 m tall, not 5 km. Temperature 21°C, price ₹500.
+
+## (4) CLAIM DECOMPOSITION
+
+| # | Sub-Claim | Type |
+| :--- | :--- | :--- |
+| 1 | The Zyxwv Tower is 5 km tall. | Factual |
+
+## (14) REFERENCES
+
+https://example.org/zyxwv-tower
+https://example.org/second-source
+"""
+
+
+def test_pdf_reflects_the_submitted_report():
+    r = client.post("/generate_pdf", json={"claim": "The Zyxwv Tower is 5 km tall", "text_pipeline_report": REPORT_MD})
+    assert r.status_code == 200
+    text = _pdf_text(r.content)
+    for expected in ("CRDF Claim Verification Report", "CRDF-2026-000777", "FINAL VERDICT", "FALSE", "91%",
+                     "Executive Summary", "Claim Decomposition", "Zyxwv Tower", "₹500", "21°C", "https://example.org/second-source"):
+        assert expected in text, f"missing {expected!r}"
+    assert "**" not in text and "##" not in text and "[Reflects" not in text
+    assert "iPhone" not in text and "Steve Jobs" not in text  # the old hard-coded demo content is gone
+
+
+def test_pdf_without_report_says_so():
+    r = client.post("/generate_pdf", json={"claim": "Some claim", "text_pipeline_error": "crew.kickoff() failed: 429"})
+    text = _pdf_text(r.content)
+    assert "Report Unavailable" in text and "429" in text
+
+
+def test_pdf_includes_multimodal_findings():
+    mm = {"image_analysis": {"has_image": True, "manipulation_check": {"appears_manipulated": True, "reasoning": "halo around edges"},
+                             "content_match_check": {"matches_claim": False, "reasoning": "shows a different tower"}}}
+    r = client.post("/generate_pdf", json={"claim": "c", "text_pipeline_report": REPORT_MD, "multimodal_results": mm})
+    text = _pdf_text(r.content)
+    assert "Multimodal Evidence Analysis" in text and "halo around edges" in text
