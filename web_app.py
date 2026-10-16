@@ -18,6 +18,12 @@ import crdf_pipeline
 
 log = logging.getLogger("crdf.api")
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 app = FastAPI(title="CRDF Backend API", version="1.0.0")
 
 # Comma-separated list of allowed origins, e.g. "http://localhost:3000,https://crdf.example.com".
