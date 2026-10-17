@@ -24,6 +24,16 @@ const upload = multer({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+import { createProxyMiddleware } from 'http-proxy-middleware';
+
+// ... (existing middleware)
+
+app.use('/api', createProxyMiddleware({
+  target: 'http://127.0.0.1:8000',
+  changeOrigin: true,
+  pathRewrite: { '^/api': '' },
+}));
+
 // CORS headers for dev and cross-origin compatibility
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -193,6 +203,7 @@ app.post(
     { name: 'document', maxCount: 1 },
   ]) as any,
   async (req: Request, res: Response) => {
+    console.log('Received /analyze request');
     try {
       const claim = (req.body.claim || '').trim();
       const sessionId = (req.body.session_id || '').trim();
@@ -288,7 +299,7 @@ Return valid JSON adhering to this schema:
           }
 
           const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3.8-flash',
             contents,
             config: {
               responseMimeType: 'application/json',

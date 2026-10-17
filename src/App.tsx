@@ -15,7 +15,7 @@ import { DropZone } from './components/DropZone';
 import { ResultCard } from './components/ResultCard';
 import { ErrorNotification } from './components/ErrorNotification';
 import { HistoryDrawer, HistoryItem } from './components/HistoryDrawer';
-import { analyzeClaim, checkBackendHealth, AnalysisResult } from './lib/api';
+import { analyzeClaim, checkBackendHealth, AnalysisResult, BACKEND_LABEL } from './lib/api';
 
 const MAX_HISTORY_ITEMS = 20;
 
@@ -343,7 +343,7 @@ export default function App() {
             <div className="flex items-center gap-2.5 min-w-0">
               <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
               <p className="text-xs sm:text-sm font-semibold truncate">
-                Backend not reachable at {import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000'}. Make sure web_app.py is running.
+                {BACKEND_LABEL} is not reachable. Make sure the backend server is running.
               </p>
             </div>
 

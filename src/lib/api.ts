@@ -19,9 +19,10 @@ export interface AnalysisResult {
 
 /**
  * Backend base URL configuration.
- * Defaults to http://127.0.0.1:8000 as configured in the Python FastAPI service.
+ * Defaults to same-origin /api.
  */
-export const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '');
+export const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/+$/, '');
+export const BACKEND_LABEL = 'CRDF Backend';
 
 /**
  * Checks backend reachability via /health.
@@ -125,10 +126,14 @@ export async function analyzeClaim(
   if (files.video) formData.append('video', files.video);
   if (files.document) formData.append('document', files.document);
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000);
+
   try {
     const response = await fetch(targetUrl, {
       method: 'POST',
       body: formData,
+      signal: controller.signal,
     });
 
     if (!response.ok) {
@@ -166,8 +171,10 @@ export async function analyzeClaim(
     };
   } catch (err: any) {
     console.error('CRDF live request failed:', err);
-    // Explicit visible error specifying target URL and failure mode
-    const msg = err.message || 'Connection refused';
-    throw new Error(`Failed to reach CRDF backend at ${targetUrl}: ${msg}`);
+    // Specific error message for the UI
+    const msg = err.name === 'AbortError' ? 'Connection timed out' : (err.message || 'Connection failed');
+    throw new Error(`Cannot reach ${BACKEND_LABEL} at ${targetUrl}: ${msg}`);
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
