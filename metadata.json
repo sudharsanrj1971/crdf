@@ -2,5 +2,7 @@
   "name": "CRDF — Claim vs Reality Determination Framework",
   "description": "Multimodal fact-checking and claim verification framework assessing text, image manipulation, video signals, and document OCR.",
   "requestFramePermissions": [],
-  "majorCapabilities": []
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
