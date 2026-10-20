@@ -137,6 +137,7 @@
       "expected_output": "A JSON object with a field confidence_scores, an array of objects. Each object has: sub_claim_text (string), confidence_score (integer 0-100), breakdown (string, briefly showing how the three factors combined), capped_for_ambiguity (boolean).",
       "agent": "confidence_scorer",
       "context": [
+        "collect_evidence_for_subclaims",
         "score_source_credibility",
         "detect_contradictions",
         "cross_verify_independently"
@@ -144,11 +145,13 @@
     },
     {
       "name": "make_final_decision",
-      "description": "Take the sub_claims, contradictions, verdicts, and confidence_scores from the previous steps. For each sub-claim, assign exactly one final classification by checking these rules IN ORDER and stopping at the first that applies: (1) If the sub-claim's type is opinion_prediction, classify as Unverifiable. (2) If contradiction_type is full_contradiction AND independent_verdict is contradicted, classify as False. (3) If evidence was empty or confidence_score is below 20, classify as Requires More Evidence. (4) If contradiction_type is full_contradiction but independent_verdict disagrees, or if contradiction_type is partial_contradiction, classify as Partially True. (5) If evidence technically supports the literal wording but is deceptive or missing critical context, classify as Misleading. (6) If independent_verdict is supported and confidence_score is 70 or above, classify as True. (6.5) If independent_verdict is contradicted and confidence_score is 70 or above, classify as False. (7) Otherwise, classify as Requires More Evidence. CRITICAL RULE: You MUST copy the confidence_score value exactly as given from the score_confidence step for each matching sub-claim. Do NOT recalculate it, adjust it, round it differently, or invent a new number under any circumstances - only the classification is your job here, the score is not yours to change.",
+      "description": "Take the raw claim (including any Multimodal Context from take_the_raw_user_task), sub_claims, evidence from collect_evidence_for_subclaims, contradictions, verdicts, and confidence_scores from the previous steps. If the claim is accompanied by an image, video, or document and multimodal analysis in Multimodal Context shows manipulation (appears_manipulated=True) or content mismatch (matches_claim=False), factor this into the relevant sub-claim classification (e.g. False or Misleading). For each sub-claim, assign exactly one final classification by checking these rules IN ORDER and stopping at the first that applies: (1) If the sub-claim's type is opinion_prediction, classify as Unverifiable. (2) If contradiction_type is full_contradiction AND independent_verdict is contradicted, classify as False. (3) If evidence was empty or confidence_score is below 20, classify as Requires More Evidence. (4) If contradiction_type is full_contradiction but independent_verdict disagrees, or if contradiction_type is partial_contradiction, classify as Partially True. (5) If evidence technically supports the literal wording but is deceptive or missing critical context, classify as Misleading. (6) If independent_verdict is supported and confidence_score is 70 or above, classify as True. (6.5) If independent_verdict is contradicted and confidence_score is 70 or above, classify as False. (7) Otherwise, classify as Requires More Evidence. CRITICAL RULE: You MUST copy the confidence_score value exactly as given from the score_confidence step for each matching sub-claim. Do NOT recalculate it, adjust it, round it differently, or invent a new number under any circumstances - only the classification is your job here, the score is not yours to change.",
       "expected_output": "A JSON object with a field final_verdicts, an array of objects. Each object has: sub_claim_text (string), classification (string - one of True, False, Partially True, Misleading, Unverifiable, Requires More Evidence), confidence_score (integer, copied exactly from score_confidence), reasoning (string, one to two sentences explaining which rule applied).",
       "agent": "final_decision_maker",
       "context": [
+        "take_the_raw_user_task",
         "decompose_claim_into_subclaims",
+        "collect_evidence_for_subclaims",
         "detect_contradictions",
         "cross_verify_independently",
         "score_confidence"

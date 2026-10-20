@@ -4,7 +4,7 @@ CRDF end-to-end workflow - fully automated, single command.
 Runs, in order:
   1. The three multimodal checks (image, video, document) via native
      CrewAI Python API, with retry/consensus logic for reliability.
-  2. The existing 15-agent JSON text pipeline (crew.jsonc) via CrewAI's
+  2. The existing 16-agent JSON text pipeline (crew.jsonc) via CrewAI's
      direct Python API (load_crew + crew.kickoff(inputs=...)), bypassing
      the interactive CLI prompts entirely.
   3. Merges both into one final combined_result.json and prints the
@@ -25,6 +25,13 @@ import argparse
 import json
 import sys
 from pathlib import Path
+
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
 
 from multimodal_image_check import run_image_check
 from multimodal_video_check import run_video_check
@@ -169,7 +176,7 @@ def run_text_pipeline_direct(
     is NEVER started.  This is a genuine pre-kickoff halt, not a
     post-hoc response filter.
 
-    PHASE 2 (only if intake passes): Run the full 15-agent crew.
+    PHASE 2 (only if intake passes): Run the full 16-agent crew.
 
     Returns (final_report_text, raw_pipeline_data, error_message).
     Exactly one of final_report_text or error_message will be non-None."""
@@ -324,6 +331,17 @@ def run_text_pipeline_direct(
             return final_report, raw_pipeline_data, None
     except (json.JSONDecodeError, AttributeError):
         pass
+
+    # Fall back to write_full_report draft if quality verifier omitted final_report
+    for task_output in getattr(result, "tasks_output", []):
+        t_name = getattr(task_output, "name", "") or ""
+        t_desc = getattr(task_output, "description", "") or ""
+        if "write_full_report" in t_name or "write_full_report" in t_desc:
+            w_parsed, _ = _parse_task_output(getattr(task_output, "raw", ""))
+            if isinstance(w_parsed, dict) and w_parsed.get("report"):
+                return w_parsed["report"], raw_pipeline_data, None
+            if getattr(task_output, "raw", ""):
+                return getattr(task_output, "raw", ""), raw_pipeline_data, None
 
     return raw, raw_pipeline_data, None
 

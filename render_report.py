@@ -378,14 +378,16 @@ def parse_markdown_to_flowables(md_text: str, styles: dict, chart_paths: dict) -
             
             # Determine color theme based on verdict
             line_upper = banner_text.upper()
-            if "TRUE" in line_upper and "FALSE" not in line_upper:
-                bg_col, box_col, txt_col = colors.HexColor('#F0FDF4'), colors.HexColor('#22C55E'), colors.HexColor('#15803D') # Green
-            elif "FALSE" in line_upper or "CONTRADICTED" in line_upper:
-                bg_col, box_col, txt_col = colors.HexColor('#FEF2F2'), colors.HexColor('#EF4444'), colors.HexColor('#B91C1C') # Red
+            if "MIXED" in line_upper or "REQUIRES MORE EVIDENCE" in line_upper or "UNVERIFIABLE" in line_upper:
+                bg_col, box_col, txt_col = colors.HexColor('#F8FAFC'), colors.HexColor('#94A3B8'), colors.HexColor('#334155') # Gray (Mixed / Requires More Evidence / Unverifiable)
             elif "MISLEADING" in line_upper or "PARTIAL" in line_upper:
                 bg_col, box_col, txt_col = colors.HexColor('#FFFBEB'), colors.HexColor('#F59E0B'), colors.HexColor('#B45309') # Amber
+            elif "FALSE" in line_upper or "CONTRADICTED" in line_upper:
+                bg_col, box_col, txt_col = colors.HexColor('#FEF2F2'), colors.HexColor('#EF4444'), colors.HexColor('#B91C1C') # Red
+            elif "TRUE" in line_upper and "FALSE" not in line_upper:
+                bg_col, box_col, txt_col = colors.HexColor('#F0FDF4'), colors.HexColor('#22C55E'), colors.HexColor('#15803D') # Green
             else:
-                bg_col, box_col, txt_col = colors.HexColor('#F8FAFC'), colors.HexColor('#94A3B8'), colors.HexColor('#334155') # Gray (Requires More Evidence / Unverifiable)
+                bg_col, box_col, txt_col = colors.HexColor('#F8FAFC'), colors.HexColor('#94A3B8'), colors.HexColor('#334155') # Gray
 
             banner_style = ParagraphStyle(
                 'BannerStyle', parent=styles['Normal'], fontName='Helvetica-Bold',
