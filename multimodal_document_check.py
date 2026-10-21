@@ -25,7 +25,7 @@ def build_ocr_agent() -> Agent:
             "A meticulous transcriptionist who never guesses at unreadable "
             "content and marks it clearly instead"
         ),
-        llm="gemini/gemini-3.1-flash-lite",
+        llm="gemini/gemini-3.5-flash-lite",
         multimodal=True,
         verbose=False,
         allow_delegation=False,

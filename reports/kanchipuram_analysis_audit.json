@@ -1,0 +1,166 @@
+{
+  "claim": "I heard on the news that it will rain in Kanchipuram tomorrow and that all schools and colleges will be closed. Is it true?",
+  "multimodal_results": {
+    "image_analysis": {
+      "has_image": false,
+      "manipulation_check": {
+        "appears_manipulated": false,
+        "reasoning": ""
+      },
+      "content_match_check": {
+        "matches_claim": "undetermined",
+        "reasoning": ""
+      }
+    },
+    "video_analysis": {
+      "has_video": false,
+      "manipulation_check": {
+        "appears_manipulated": false,
+        "reasoning": ""
+      },
+      "content_match_check": {
+        "matches_claim": "undetermined",
+        "reasoning": ""
+      }
+    },
+    "document_analysis": {
+      "has_document": false,
+      "has_text_content": false,
+      "extracted_text": "",
+      "unreadable_sections": []
+    }
+  },
+  "multimodal_summary_text": "",
+  "text_pipeline_report": "## 1. REPORT HEADER\n\n| Field | Details |\n| :--- | :--- |\n| Report ID | CRDF-2026-482910 |\n| Submission Date | Generated at time of execution [Note: reflects generation time] |\n| Claim Category | Public Weather & Education |\n| Evidence Submitted | 0 |\n\n## 2. FINAL VERDICT AND CONFIDENCE SCORE\nFinal Verdict: Unverifiable | Confidence Score: 0\n\n## 3. Executive Summary\nThis fact-checking report evaluates the claim: \"It will rain in Kanchipuram tomorrow and all schools and colleges will be closed.\" The claim has been decomposed into two distinct sub-claims regarding weather predictions and educational institution closures. Zero evidence sources were collected during the evaluation process. Consequently, both sub-claims are classified as Unverifiable with a confidence score of 0.\n\n## 4. Claim Decomposition\n\n| # | Sub-Claim | Type |\n| :--- | :--- | :--- |\n| 1 | It will rain in Kanchipuram tomorrow | opinion_prediction |\n| 2 | All schools and colleges in Kanchipuram will be closed tomorrow | opinion_prediction |\n\n## 5. Evidence Summary\n\n### Sub-Claim 1: It will rain in Kanchipuram tomorrow\n\n| Stance | Evidence | Source |\n| :--- | :--- | :--- |\n| N/A | No evidence collected | None |\n\n### Sub-Claim 2: All schools and colleges in Kanchipuram will be closed tomorrow\n\n| Stance | Evidence | Source |\n| :--- | :--- | :--- |\n| N/A | No evidence collected | None |\n\n## 6. Source Credibility Analysis\n\n| Source | Credibility Score | Justification |\n| :--- | :--- | :--- |\n| None | N/A | No sources were collected during the evidence collection phase. |\n\n## 7. Contradiction and Consistency Findings\n\n| Conflict | Conflicting Items | Severity |\n| :--- | :--- | :--- |\n| None | None | Low/None |\n\n## 8. Evidence Timeline\nPublication dates were not tracked during evidence collection for this run.\n\n## 9. Chain-of-Evidence Validation\nVerdict -> driven primarily by It will rain in Kanchipuram tomorrow and All schools and colleges in Kanchipuram will be closed tomorrow -> grounded in None -> corroborated by None\n\n## 10. Risk and Severity Assessment\nFor the sub-claim regarding rain, acting on the belief that it will rain might cause someone to needlessly carry an umbrella or alter minor outdoor plans, resulting in negligible real-world consequence, yielding a low severity rating with no domains affected. For the sub-claim regarding school closures, if students and staff falsely believe educational institutions are closed, they may skip exams, miss critical instructional days, or travel unnecessarily to locked campuses, causing disruption and minor safety risks during transit, yielding a medium severity rating affecting the public_safety domain.\n\n## 11. Legal and Policy Considerations\nMisleading claims may carry consumer-protection or advertising-standards implications depending on jurisdiction. This report is provided for informational purposes only and does not constitute legal advice.\n\n## 12. Confidence Score Breakdown\n\n| Factor | Points | Out of Max |\n| :--- | :--- | :--- |\n| Source Credibility | 0 | - |\n| Absence of Contradictions | 0 | - |\n| Cross-Verification Agreement | 0 | - |\n\n## 13. Final Verdict\nThe claim contains sub-claims classified as Unverifiable. Specifically, Rule (1) applied because the sub-claim's type is opinion_prediction for both \"It will rain in Kanchipuram tomorrow\" and \"All schools and colleges in Kanchipuram will be closed tomorrow\", resulting in an Unverifiable classification with a confidence score of 0.\n\n## 14. References\nNo sources were collected.",
+  "raw_pipeline_data": {
+    "take_the_raw_user_task": {
+      "cleaned_claim": "It will rain in Kanchipuram tomorrow and all schools and colleges will be closed.",
+      "ready_for_processing": true,
+      "status": "ready"
+    },
+    "validate_session": {
+      "session_valid": true,
+      "session_id_checked": "kanchipuram-live-audit-session",
+      "log_entry": "[2023-10-25T14:30:00Z] AUDIT: Session ID 'kanchipuram-live-audit-session' checked. Outcome: VALID. No persistent rate-tracking storage available in this local context.",
+      "abuse_flag": false,
+      "abuse_flag_reason": ""
+    },
+    "extract_document_text": {
+      "has_document": false,
+      "extracted_text": "",
+      "unreadable_sections": []
+    },
+    "check_image_authenticity": {
+      "has_image": false,
+      "manipulation_check": {
+        "appears_manipulated": false,
+        "reasoning": "No image was provided for technical analysis."
+      },
+      "content_match_check": {
+        "matches_claim": "undetermined",
+        "reasoning": "No image or reference content was provided to evaluate against the claim regarding rain and school/college closures in Kanchipuram."
+      }
+    },
+    "check_video_authenticity": {
+      "has_video": false,
+      "manipulation_check": {
+        "appears_manipulated": false,
+        "reasoning": "No video file was provided for analysis."
+      },
+      "content_match_check": {
+        "matches_claim": "undetermined",
+        "reasoning": "No video file or audiovisual content was provided to verify the claim regarding weather and school closures in Kanchipuram."
+      }
+    },
+    "decompose_claim_into_subclaims": {
+      "sub_claims": [
+        {
+          "text": "It will rain in Kanchipuram tomorrow",
+          "type": "opinion_prediction",
+          "entities": [],
+          "dates": [
+            "tomorrow"
+          ],
+          "locations": [
+            "Kanchipuram"
+          ]
+        },
+        {
+          "text": "All schools and colleges in Kanchipuram will be closed tomorrow",
+          "type": "opinion_prediction",
+          "entities": [
+            "schools",
+            "colleges"
+          ],
+          "dates": [
+            "tomorrow"
+          ],
+          "locations": [
+            "Kanchipuram"
+          ]
+        }
+      ]
+    },
+    "authenticate_cited_sources": {
+      "cited_sources": []
+    },
+    "collect_evidence_for_subclaims": {
+      "evidence": []
+    },
+    "assess_risk_and_severity": {
+      "risk_assessments": [
+        {
+          "sub_claim_text": "It will rain in Kanchipuram tomorrow",
+          "severity": "low",
+          "domains_affected": [],
+          "reasoning": "Acting on the belief that it will rain might cause someone to needlessly carry an umbrella or alter minor outdoor plans, resulting in negligible real-world consequence."
+        },
+        {
+          "sub_claim_text": "All schools and colleges in Kanchipuram will be closed tomorrow",
+          "severity": "medium",
+          "domains_affected": [
+            "public_safety"
+          ],
+          "reasoning": "If students and staff falsely believe educational institutions are closed, they may skip exams, miss critical instructional days, or travel unnecessarily to locked campuses, causing disruption and minor safety risks during transit."
+        }
+      ]
+    },
+    "score_source_credibility": {
+      "scores": []
+    },
+    "detect_contradictions": {
+      "contradictions": []
+    },
+    "cross_verify_independently": {
+      "verdicts": []
+    },
+    "score_confidence": {
+      "confidence_scores": []
+    },
+    "make_final_decision": {
+      "final_verdicts": [
+        {
+          "sub_claim_text": "It will rain in Kanchipuram tomorrow",
+          "classification": "Unverifiable",
+          "confidence_score": 0,
+          "reasoning": "Rule (1) applied because the sub-claim's type is opinion_prediction, resulting in an Unverifiable classification."
+        },
+        {
+          "sub_claim_text": "All schools and colleges in Kanchipuram will be closed tomorrow",
+          "classification": "Unverifiable",
+          "confidence_score": 0,
+          "reasoning": "Rule (1) applied because the sub-claim's type is opinion_prediction, resulting in an Unverifiable classification."
+        }
+      ]
+    },
+    "write_full_report": {
+      "report": "## 1. REPORT HEADER\n\n| Field | Details |\n| :--- | :--- |\n| Report ID | CRDF-2026-482910 |\n| Submission Date | Generated at time of execution [Note: reflects generation time] |\n| Claim Category | Public Weather & Education |\n| Evidence Submitted | 0 |\n\n## 2. FINAL VERDICT AND CONFIDENCE SCORE\nFinal Verdict: Unverifiable | Confidence Score: 0\n\n## 3. Executive Summary\nThis fact-checking report evaluates the claim: \"It will rain in Kanchipuram tomorrow and all schools and colleges will be closed.\" The claim has been decomposed into two distinct sub-claims regarding weather predictions and educational institution closures. Zero evidence sources were collected during the evaluation process. Consequently, both sub-claims are classified as Unverifiable with a confidence score of 0.\n\n## 4. Claim Decomposition\n\n| # | Sub-Claim | Type |\n| :--- | :--- | :--- |\n| 1 | It will rain in Kanchipuram tomorrow | opinion_prediction |\n| 2 | All schools and colleges in Kanchipuram will be closed tomorrow | opinion_prediction |\n\n## 5. Evidence Summary\n\n### Sub-Claim 1: It will rain in Kanchipuram tomorrow\n\n| Stance | Evidence | Source |\n| :--- | :--- | :--- |\n| N/A | No evidence collected | None |\n\n### Sub-Claim 2: All schools and colleges in Kanchipuram will be closed tomorrow\n\n| Stance | Evidence | Source |\n| :--- | :--- | :--- |\n| N/A | No evidence collected | None |\n\n## 6. Source Credibility Analysis\n\n| Source | Credibility Score | Justification |\n| :--- | :--- | :--- |\n| None | N/A | No sources were collected during the evidence collection phase. |\n\n## 7. Contradiction and Consistency Findings\n\n| Conflict | Conflicting Items | Severity |\n| :--- | :--- | :--- |\n| None | None | Low/None |\n\n## 8. Evidence Timeline\nPublication dates were not tracked during evidence collection for this run.\n\n## 9. Chain-of-Evidence Validation\nVerdict -> driven primarily by It will rain in Kanchipuram tomorrow and All schools and colleges in Kanchipuram will be closed tomorrow -> grounded in None -> corroborated by None\n\n## 10. Risk and Severity Assessment\nFor the sub-claim regarding rain, acting on the belief that it will rain might cause someone to needlessly carry an umbrella or alter minor outdoor plans, resulting in negligible real-world consequence, yielding a low severity rating with no domains affected. For the sub-claim regarding school closures, if students and staff falsely believe educational institutions are closed, they may skip exams, miss critical instructional days, or travel unnecessarily to locked campuses, causing disruption and minor safety risks during transit, yielding a medium severity rating affecting the public_safety domain.\n\n## 11. Legal and Policy Considerations\nMisleading claims may carry consumer-protection or advertising-standards implications depending on jurisdiction. This report is provided for informational purposes only and does not constitute legal advice.\n\n## 12. Confidence Score Breakdown\n\n| Factor | Points | Out of Max |\n| :--- | :--- | :--- |\n| Source Credibility | 0 | - |\n| Absence of Contradictions | 0 | - |\n| Cross-Verification Agreement | 0 | - |\n\n## 13. Final Verdict\nThe claim contains sub-claims classified as Unverifiable. Specifically, Rule (1) applied because the sub-claim's type is opinion_prediction for both \"It will rain in Kanchipuram tomorrow\" and \"All schools and colleges in Kanchipuram will be closed tomorrow\", resulting in an Unverifiable classification with a confidence score of 0.\n\n## 14. References\nNo sources were collected."
+    },
+    "verify_report_quality": {
+      "approved": true,
+      "issues_found": [],
+      "final_report": "## 1. REPORT HEADER\n\n| Field | Details |\n| :--- | :--- |\n| Report ID | CRDF-2026-482910 |\n| Submission Date | Generated at time of execution [Note: reflects generation time] |\n| Claim Category | Public Weather & Education |\n| Evidence Submitted | 0 |\n\n## 2. FINAL VERDICT AND CONFIDENCE SCORE\nFinal Verdict: Unverifiable | Confidence Score: 0\n\n## 3. Executive Summary\nThis fact-checking report evaluates the claim: \"It will rain in Kanchipuram tomorrow and all schools and colleges will be closed.\" The claim has been decomposed into two distinct sub-claims regarding weather predictions and educational institution closures. Zero evidence sources were collected during the evaluation process. Consequently, both sub-claims are classified as Unverifiable with a confidence score of 0.\n\n## 4. Claim Decomposition\n\n| # | Sub-Claim | Type |\n| :--- | :--- | :--- |\n| 1 | It will rain in Kanchipuram tomorrow | opinion_prediction |\n| 2 | All schools and colleges in Kanchipuram will be closed tomorrow | opinion_prediction |\n\n## 5. Evidence Summary\n\n### Sub-Claim 1: It will rain in Kanchipuram tomorrow\n\n| Stance | Evidence | Source |\n| :--- | :--- | :--- |\n| N/A | No evidence collected | None |\n\n### Sub-Claim 2: All schools and colleges in Kanchipuram will be closed tomorrow\n\n| Stance | Evidence | Source |\n| :--- | :--- | :--- |\n| N/A | No evidence collected | None |\n\n## 6. Source Credibility Analysis\n\n| Source | Credibility Score | Justification |\n| :--- | :--- | :--- |\n| None | N/A | No sources were collected during the evidence collection phase. |\n\n## 7. Contradiction and Consistency Findings\n\n| Conflict | Conflicting Items | Severity |\n| :--- | :--- | :--- |\n| None | None | Low/None |\n\n## 8. Evidence Timeline\nPublication dates were not tracked during evidence collection for this run.\n\n## 9. Chain-of-Evidence Validation\nVerdict -> driven primarily by It will rain in Kanchipuram tomorrow and All schools and colleges in Kanchipuram will be closed tomorrow -> grounded in None -> corroborated by None\n\n## 10. Risk and Severity Assessment\nFor the sub-claim regarding rain, acting on the belief that it will rain might cause someone to needlessly carry an umbrella or alter minor outdoor plans, resulting in negligible real-world consequence, yielding a low severity rating with no domains affected. For the sub-claim regarding school closures, if students and staff falsely believe educational institutions are closed, they may skip exams, miss critical instructional days, or travel unnecessarily to locked campuses, causing disruption and minor safety risks during transit, yielding a medium severity rating affecting the public_safety domain.\n\n## 11. Legal and Policy Considerations\nMisleading claims may carry consumer-protection or advertising-standards implications depending on jurisdiction. This report is provided for informational purposes only and does not constitute legal advice.\n\n## 12. Confidence Score Breakdown\n\n| Factor | Points | Out of Max |\n| :--- | :--- | :--- |\n| Source Credibility | 0 | - |\n| Absence of Contradictions | 0 | - |\n| Cross-Verification Agreement | 0 | - |\n\n## 13. Final Verdict\nThe claim contains sub-claims classified as Unverifiable. Specifically, Rule (1) applied because the sub-claim's type is opinion_prediction for both \"It will rain in Kanchipuram tomorrow\" and \"All schools and colleges in Kanchipuram will be closed tomorrow\", resulting in an Unverifiable classification with a confidence score of 0.\n\n## 14. References\nNo sources were collected."
+    }
+  },
+  "text_pipeline_error": null
+}

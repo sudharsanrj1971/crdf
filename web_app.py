@@ -54,7 +54,10 @@ async def startup_event_check():
 
 
 # Hardening: Explicit CORS allowlist via env var
-allowed_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",")
+allowed_origins = os.getenv(
+    "CORS_ORIGINS",
+    "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000"
+).split(",")
 
 app.add_middleware(
     CORSMiddleware,
@@ -215,7 +218,7 @@ async def analyze(
         # which is often unsupported. However, the 504 response goes out instantly.
         combined = await asyncio.wait_for(
             loop.run_in_executor(pipeline_executor, _run_pipeline),
-            timeout=300.0  # 5 minute timeout
+            timeout=float(os.getenv("PIPELINE_TIMEOUT_SECONDS", "600.0"))  # 10 minute timeout default
         )
         return JSONResponse(content=combined)
     except asyncio.TimeoutError:

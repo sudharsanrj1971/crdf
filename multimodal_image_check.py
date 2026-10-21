@@ -35,7 +35,7 @@ def build_image_agent() -> Agent:
             "has been technically altered, and whether an unaltered image is "
             "being used to falsely support a claim it has nothing to do with"
         ),
-        llm="gemini/gemini-3.1-flash-lite",
+        llm="gemini/gemini-3.5-flash-lite",
         multimodal=True,  # still works in this version, just deprecated
         verbose=False,
         allow_delegation=False,

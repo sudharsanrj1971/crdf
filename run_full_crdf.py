@@ -118,7 +118,7 @@ def run_intake_only(
             "of user submissions and knows the difference between a genuine "
             "checkable claim, a vague question, and an opinion disguised as fact"
         ),
-        llm="gemini/gemini-3.1-flash-lite",
+        llm="gemini/gemini-3.5-flash-lite",
         verbose=False,
         allow_delegation=False,
     )

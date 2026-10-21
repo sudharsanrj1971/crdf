@@ -29,7 +29,7 @@ def build_video_agent() -> Agent:
             "or edited in ways that do not actually change whether it "
             "supports the claim, and both distinctions matter"
         ),
-        llm="gemini/gemini-3.1-flash-lite",
+        llm="gemini/gemini-3.5-flash-lite",
         multimodal=True,
         verbose=False,
         allow_delegation=False,
