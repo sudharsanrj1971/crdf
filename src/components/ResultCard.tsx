@@ -13,8 +13,11 @@ import {
   ExternalLink,
   X,
   Loader2,
+  FileText,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
-import { AnalysisResult } from '../lib/api';
+import { AnalysisResult, generatePdf } from '../lib/api';
 import { generateReport, getReportBlobUrl, AttachedMediaReportItem } from '../lib/generateReport';
 
 export interface ResultCardProps {
@@ -40,6 +43,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
+  const [isEvidenceOpen, setIsEvidenceOpen] = useState<boolean>(false);
 
   if (!result && !error) {
     return null;
@@ -211,6 +215,33 @@ export const ResultCard: React.FC<ResultCardProps> = ({
             </>
           )}
         </button>
+
+        {/* Server-side PDF Button */}
+        <button
+          type="button"
+          onClick={async () => {
+            setPdfState('preparing');
+            try {
+              const blob = await generatePdf(claim, result);
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `CRDF_Report_${claim.slice(0, 20)}.pdf`;
+              a.click();
+              setPdfState('downloaded');
+            } catch (e) {
+              setPdfError('Failed to generate server PDF');
+            } finally {
+              setTimeout(() => setPdfState('idle'), 2000);
+            }
+          }}
+          disabled={isRunning || pdfState === 'preparing'}
+          aria-label="Download analysis report as PDF (Server-side)"
+          className="glass-button-ghost flex-1 min-[560px]:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-[12px] text-xs font-bold text-[var(--text-primary)] border border-[var(--glass-border)] hover:border-[var(--accent-indigo)] hover:bg-[var(--glass-bg)] transition-all cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-indigo)] disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
+        >
+           <FileText className="w-3.5 h-3.5 text-[var(--accent-indigo)]" />
+           <span>Server PDF</span>
+        </button>
       </div>
 
       {pdfError && (
@@ -346,6 +377,31 @@ export const ResultCard: React.FC<ResultCardProps> = ({
             })}
           </ol>
         </div>
+
+        {/* Evidence Trail Collapsible Section */}
+        {result.evidence && result.evidence.length > 0 && (
+          <div className="mt-6 border-t border-[var(--glass-border-subtle)] pt-6">
+            <button
+              onClick={() => setIsEvidenceOpen(!isEvidenceOpen)}
+              className="flex w-full items-center justify-between text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] hover:text-[var(--text-primary)] transition"
+            >
+              <span className="flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-[var(--accent-indigo)]" />
+                Evidence Trail
+              </span>
+              {isEvidenceOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+            {isEvidenceOpen && (
+              <ul className="mt-3.5 space-y-2 list-none">
+                {result.evidence.map((snippet, index) => (
+                  <li key={index} className="px-3 py-2 text-xs text-[var(--text-primary)] bg-[var(--glass-bg-subtle)] rounded-lg border border-[var(--glass-border-subtle)]">
+                    {snippet}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </section>
 
       {/* PDF Preview Modal */}

@@ -28,30 +28,17 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 
 // ... (existing middleware)
 
-// Proxy /api/* and /analyze directly to the Python CrewAI backend on port 8000
-const backendProxy = createProxyMiddleware({
-  target: 'http://127.0.0.1:8000',
-  changeOrigin: true,
+// Use the legacy analyze handler directly
+app.post('/analyze', upload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'video', maxCount: 1 },
+  { name: 'document', maxCount: 1 }
+]), _legacyAnalyzeHandler);
+
+app.post('/generate_pdf', (req, res, next) => {
+  // Pass to existing /generate_pdf handler
+  next();
 });
-
-// Forward /api/... (strips /api prefix) â†’ backend
-app.use('/api', createProxyMiddleware({
-  target: 'http://127.0.0.1:8000',
-  changeOrigin: true,
-  pathRewrite: { '^/api': '' },
-}));
-
-// Forward /analyze directly â†’ backend (no prefix strip needed)
-app.use('/analyze', createProxyMiddleware({
-  target: 'http://127.0.0.1:8000',
-  changeOrigin: true,
-  pathRewrite: (path) => '/analyze' + path.replace(/^\/analyze/, ''),
-}));
-app.use('/generate_pdf', createProxyMiddleware({
-  target: 'http://127.0.0.1:8000',
-  changeOrigin: true,
-  pathRewrite: (path) => '/generate_pdf' + path.replace(/^\/generate_pdf/, ''),
-}));
 
 // CORS headers for dev and cross-origin compatibility
 app.use((req, res, next) => {

@@ -15,6 +15,7 @@ export interface AnalysisResult {
   confidence: number;
   note?: string;
   steps: AgentStep[];
+  evidence?: string[];
 }
 
 /**
@@ -114,6 +115,12 @@ export async function analyzeClaim(
       confidence,
       note: 'Mock result. No backend was called.',
       steps,
+      evidence: [
+        'Cross-referencing with external knowledge graphs for factual consistency.',
+        'Analyzing multimodal context: image metadata and scene recognition.',
+        'Evaluating source provenance and historical reliability.',
+        'Synthesizing agent consensus into final verdict.',
+      ],
     };
   }
 
@@ -177,4 +184,26 @@ export async function analyzeClaim(
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+export async function generatePdf(
+  claim: string,
+  result: AnalysisResult
+): Promise<Blob> {
+  const response = await fetch(`${BACKEND_URL}/generate_pdf`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      claim,
+      multimodal_summary_text: `Verdict: ${result.verdict}. Confidence: ${result.confidence}%. Note: ${result.note || ''}`,
+      text_pipeline_report: `Verdict: ${result.verdict}\nConfidence: ${result.confidence}%\nNote: ${result.note}\nSteps: ${JSON.stringify(result.steps)}`,
+      raw_pipeline_data: { category: 'Claim Verification' }
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to generate PDF');
+  }
+
+  return response.blob();
 }
