@@ -1,1 +1,0 @@
-(Get-Content crew.jsonc -Raw) -replace 'Report ID \(generate as CRDF- followed by the current year and a random 6-digit number\)', 'Report ID (generate as CRDF- followed by 2026, which is the actual current year, then a random 6-digit number - never use any other year)' | Set-Content crew.jsonc

@@ -1,54 +1,8 @@
-version: '3.8'
-
 services:
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile.backend
-    container_name: crdf-backend
-    env_file:
-      - .env
+    build: .
+    ports:
+      - "8000:8000"
     environment:
-      - PYTHONPATH=/app
-      - PYTHONIOENCODING=utf-8
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - SERPER_API_KEY=${SERPER_API_KEY}
-      - MODEL=${MODEL}
-      - CREWAI_TRACING_ENABLED=${CREWAI_TRACING_ENABLED}
-      - GROQ_API_KEY=${GROQ_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - CORS_ORIGINS=${CORS_ORIGINS}
-    ports:
-      - '8000:8000'
-    networks:
-      - crdf-net
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
-    volumes:
-      - crdf-uploads:/tmp/crdf_uploads
-
-  frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile.frontend
-    container_name: crdf-frontend
-    depends_on:
-      backend:
-        condition: service_healthy
-    ports:
-      - '80:80'
-    networks:
-      - crdf-net
-    restart: unless-stopped
-
-networks:
-  crdf-net:
-    driver: bridge
-
-volumes:
-  crdf-uploads:
+    command: uvicorn web_app:app --host 0.0.0.0 --port 8000

@@ -1,501 +1,563 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import React, { useState, useRef, useEffect, DragEvent } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  UploadCloud, FileText, AlertTriangle, Loader2, Video, FileSearch, Download, ShieldCheck
+  Shield,
+  Sun,
+  Moon,
+  History as HistoryIcon,
+  RotateCcw,
+  Sparkles,
+  Loader2,
+  X,
+  AlertTriangle,
+  ArrowRight,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { DropZone } from './components/DropZone';
+import { ResultCard } from './components/ResultCard';
+import { ErrorNotification } from './components/ErrorNotification';
+import { HistoryDrawer, HistoryItem } from './components/HistoryDrawer';
+import { analyzeClaim, checkBackendHealth, AnalysisResult, BACKEND_LABEL } from './lib/api';
 
-import { AssessmentResult } from './components/AssessmentResult';
-import { DocumentResult } from './components/DocumentResult';
-import { AnalysisResultDisplay } from './components/AnalysisResult';
-import type { AnalyzeResponse, ImageAnalysis, VideoAnalysis, DocumentAnalysis } from './types';
-
-// ─── helpers ────────────────────────────────────────────────────────────────
-
-function FileDropZone({
-  label,
-  accept,
-  file,
-  onFile,
-}: {
-  label: string;
-  accept: string;
-  file: File | null;
-  onFile: (f: File) => void;
-}) {
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const f = e.dataTransfer.files?.[0];
-    if (f) onFile(f);
-  };
-
-  return (
-    <div
-      className={`border-2 border-dashed rounded-xl px-4 py-5 text-center cursor-pointer transition-colors
-        ${file
-          ? 'border-blue-400 bg-blue-50'
-          : 'border-slate-300 hover:border-blue-400 hover:bg-slate-50'}`}
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={handleDrop}
-      onClick={() => inputRef.current?.click()}
-    >
-      <input
-        ref={inputRef}
-        type="file"
-        accept={accept}
-        className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) onFile(f);
-        }}
-      />
-      {file ? (
-        <p className="text-sm text-blue-600 font-medium truncate">{file.name}</p>
-      ) : (
-        <div className="flex flex-col items-center gap-1 text-slate-400">
-          <UploadCloud className="w-6 h-6" />
-          <p className="text-xs">{label}</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── main app ────────────────────────────────────────────────────────────────
+const MAX_HISTORY_ITEMS = 20;
 
 export default function App() {
+  // Theme state: defaults to prefers-color-scheme, persists in localStorage
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    try {
+      const stored = localStorage.getItem('crdf_theme');
+      if (stored === 'light' || stored === 'dark') return stored;
+    } catch {}
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
+    return 'light';
+  });
+
+  // Apply theme class to documentElement
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    try {
+      localStorage.setItem('crdf_theme', theme);
+    } catch {}
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  };
+
+  // Form input states
   const [claim, setClaim] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [documentFile, setDocumentFile] = useState<File | null>(null);
 
-  const [loading, setLoading] = useState(false);
-  const [response, setResponse] = useState<AnalyzeResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [pdfLoading, setPdfLoading] = useState(false);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  // File validation error states
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [videoError, setVideoError] = useState<string | null>(null);
+  const [documentError, setDocumentError] = useState<string | null>(null);
 
-  // Abort any in-flight analysis request on unmount
+  // App modes & status
+  // Mock mode must default to OFF and never persist as ON silently
+  const [mockMode, setMockMode] = useState<boolean>(false);
+  const [backendConnected, setBackendConnected] = useState<boolean | null>(null);
+  const [dismissWarningBanner, setDismissWarningBanner] = useState<boolean>(false);
+
+  // Execution & results state
+  const [isRunning, setIsRunning] = useState<boolean>(false);
+  const [currentResult, setCurrentResult] = useState<AnalysisResult | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+
+  // History state: last 20 items, persisted in localStorage
+  const [historyItems, setHistoryItems] = useState<HistoryItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('crdf_history');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed.slice(0, MAX_HISTORY_ITEMS);
+      }
+    } catch {}
+    return [];
+  });
+
+  const [historyOpen, setHistoryOpen] = useState<boolean>(false);
+  const resultRef = useRef<HTMLDivElement>(null);
+
+  // Persist history changes
   useEffect(() => {
+    try {
+      localStorage.setItem('crdf_history', JSON.stringify(historyItems));
+    } catch {}
+  }, [historyItems]);
+
+  // Initial and periodic backend health check
+  useEffect(() => {
+    let mounted = true;
+    const probeBackend = async () => {
+      const isUp = await checkBackendHealth();
+      if (mounted) {
+        setBackendConnected(isUp);
+      }
+    };
+
+    probeBackend();
+    const interval = setInterval(probeBackend, 25000);
     return () => {
-      abortControllerRef.current?.abort();
+      mounted = false;
+      clearInterval(interval);
     };
   }, []);
 
-  const handleAnalyze = async () => {
-    if (!claim.trim()) {
-      setError('Please enter a claim before analyzing.');
-      return;
-    }
+  // Handle Form Submission
+  const handleAnalyze = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const cleanClaim = claim.trim();
+    if (!cleanClaim || isRunning) return;
 
-    // Abort any previous in-flight request
-    abortControllerRef.current?.abort();
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-
-    setLoading(true);
-    setError(null);
-    setResponse(null);
-
-    const formData = new FormData();
-    formData.append('claim', claim.trim());
-    if (imageFile) formData.append('image', imageFile);
-    if (videoFile) formData.append('video', videoFile);
-    if (documentFile) formData.append('document', documentFile);
+    setIsRunning(true);
+    setAnalysisError(null);
+    setCurrentResult(null);
 
     try {
-      const res = await fetch('/analyze', {
-        method: 'POST',
-        body: formData,
-        signal: controller.signal,
-      });
+      const result = await analyzeClaim(
+        cleanClaim,
+        {
+          image: imageFile || undefined,
+          video: videoFile || undefined,
+          document: documentFile || undefined,
+        },
+        mockMode
+      );
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || `Server error ${res.status}`);
-      }
+      setCurrentResult(result);
 
-      const data: AnalyzeResponse = await res.json();
-      setResponse(data);
-    } catch (err: unknown) {
-      // Don't set error state if the request was intentionally aborted
-      if (err instanceof DOMException && err.name === 'AbortError') {
-        return;
-      }
-      setError(err instanceof Error ? err.message : 'An unknown error occurred.');
+      // Add to history (only successful analyses)
+      const newItem: HistoryItem = {
+        id: `crdf-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        timestamp: Date.now(),
+        claim: cleanClaim,
+        result,
+      };
+
+      setHistoryItems((prev) => [newItem, ...prev.slice(0, MAX_HISTORY_ITEMS - 1)]);
+
+      // Scroll to result on small screens
+      setTimeout(() => {
+        resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 100);
+    } catch (err: any) {
+      setAnalysisError(err.message || 'An error occurred during analysis.');
+      // Do not add failed run to history
     } finally {
-      if (abortControllerRef.current === controller) {
-        setLoading(false);
-      }
+      setIsRunning(false);
     }
   };
 
-  const handleGeneratePdf = async () => {
-    if (!response) return;
-    setPdfLoading(true);
-    try {
-      const res = await fetch('/generate_pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          claim: response.claim,
-          multimodal_results: response.multimodal_results,
-          multimodal_summary_text: response.multimodal_summary_text,
-          text_pipeline_report: response.text_pipeline_report,
-          raw_pipeline_data: response.raw_pipeline_data,
-          text_pipeline_error: response.text_pipeline_error,
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || 'PDF generation failed');
-      }
-
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'CRDF_Report.pdf';
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'PDF generation failed.');
-    } finally {
-      setPdfLoading(false);
-    }
-  };
-
-  const handleReset = () => {
-    setResponse(null);
-    setError(null);
+  // Handle Form Reset
+  const handleClear = () => {
     setClaim('');
     setImageFile(null);
     setVideoFile(null);
     setDocumentFile(null);
+    setImageError(null);
+    setVideoError(null);
+    setDocumentError(null);
+    setCurrentResult(null);
+    setAnalysisError(null);
   };
 
-  // Cast nested results (backend returns dicts, Pydantic validated)
-  const imgResult = response?.multimodal_results?.image_analysis as ImageAnalysis | undefined;
-  const vidResult = response?.multimodal_results?.video_analysis as VideoAnalysis | undefined;
-  const docResult = response?.multimodal_results?.document_analysis as DocumentAnalysis | undefined;
+  // History Drawer actions
+  const handleClearHistory = () => {
+    setHistoryItems([]);
+    try {
+      localStorage.removeItem('crdf_history');
+    } catch {}
+  };
+
+  const handleSelectHistoryItem = (item: HistoryItem) => {
+    setClaim(item.claim);
+    setCurrentResult(item.result);
+    setAnalysisError(null);
+    setTimeout(() => {
+      resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 100);
+  };
+
+  const showUnreachableWarning = backendConnected === false && !dismissWarningBanner;
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-slate-900 rounded-lg text-white shadow-sm">
-              <ShieldCheck className="w-5 h-5" />
+    <div className="relative min-h-screen pb-16 selection:bg-[var(--accent-indigo)]/20 selection:text-[var(--accent-indigo)]">
+      {analysisError && (
+        <ErrorNotification
+          message={analysisError}
+          onClose={() => setAnalysisError(null)}
+        />
+      )}
+
+      {/* Background Atmosphere Blobs (fixed, blur 90px, ~50% opacity in indigo, cyan, magenta) */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden="true">
+        <div
+          className="absolute -top-[12%] -left-[10%] w-[58vw] max-w-[500px] h-[58vw] max-h-[500px] rounded-full blur-[90px] opacity-50 transition-colors duration-700"
+          style={{ background: 'var(--blob-1)' }}
+        />
+        <div
+          className="absolute top-[35%] -right-[12%] w-[52vw] max-w-[460px] h-[52vw] max-h-[460px] rounded-full blur-[90px] opacity-45 transition-colors duration-700"
+          style={{ background: 'var(--blob-2)' }}
+        />
+        <div
+          className="absolute -bottom-[12%] left-[20%] w-[62vw] max-w-[540px] h-[62vw] max-h-[540px] rounded-full blur-[90px] opacity-40 transition-colors duration-700"
+          style={{ background: 'var(--blob-3)' }}
+        />
+      </div>
+
+      {/* Main Container: max-width 880px with >=12px mobile padding */}
+      <div className="crdf-layout-container relative z-10 pt-3 sm:pt-5">
+        {/* Sticky Glass Header */}
+        <header className="sticky top-2 sm:top-4 z-30 mb-4 sm:mb-6 rounded-[22px] glass-panel-elevated p-3 sm:p-4 transition-all duration-200">
+          <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
+            {/* Left: Shield logo tile & Brand Title */}
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+              <div
+                className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-md text-white"
+                style={{ background: 'var(--accent-gradient)' }}
+              >
+                <Shield className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.2]" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-2xl font-extrabold tracking-tight text-[var(--text-primary)] leading-tight truncate">
+                  CRDF System
+                </h1>
+                <p className="text-[11px] sm:text-xs font-semibold text-[var(--text-muted)] truncate">
+                  Claim vs Reality Determination Framework
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight">CRDF System</h1>
-              <p className="text-xs text-slate-500 font-medium">Claim Research &amp; Detection Framework</p>
+
+            {/* Right: Header controls with wrapping and mobile-responsive text */}
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 ml-auto">
+              {/* 1. Backend Status Pill */}
+              <div
+                aria-label={`Backend status: ${
+                  backendConnected === true ? 'Backend connected' : 'Backend unreachable'
+                }`}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] select-none"
+              >
+                <span
+                  className={`w-2 h-2 rounded-full shrink-0 ${
+                    backendConnected === true
+                      ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]'
+                      : 'bg-rose-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]'
+                  }`}
+                />
+                <span className="hidden sm:inline text-[11px] font-semibold text-[var(--text-muted)]">
+                  {backendConnected === true ? 'Backend connected' : 'Backend unreachable'}
+                </span>
+              </div>
+
+              {/* 2. Mock ON/OFF Toggle Pill */}
+              <button
+                type="button"
+                onClick={() => setMockMode((prev) => !prev)}
+                aria-label={`Mock mode is ${mockMode ? 'ON' : 'OFF'}. Click to toggle.`}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold border transition-all cursor-pointer select-none ${
+                  mockMode
+                    ? 'border-indigo-500/40 bg-indigo-500/15 text-[var(--accent-indigo)] hover:bg-indigo-500/25'
+                    : 'border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] text-[var(--text-muted)] hover:bg-[var(--glass-bg)]'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                <span>{mockMode ? 'Mock ON' : 'Mock OFF'}</span>
+              </button>
+
+              {/* 3. History Button */}
+              <button
+                type="button"
+                onClick={() => setHistoryOpen(true)}
+                aria-label={`View analysis history. ${historyItems.length} items saved.`}
+                className="glass-button-ghost inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold text-[var(--text-primary)] cursor-pointer"
+              >
+                <HistoryIcon className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">History</span>
+                <span className="font-mono text-[11px] bg-[var(--glass-bg-elevated)] px-1.5 py-0.2 rounded-md border border-[var(--glass-border-subtle)]">
+                  {historyItems.length}
+                </span>
+              </button>
+
+              {/* 4. Theme Toggle Button */}
+              <button
+                type="button"
+                onClick={toggleTheme}
+                aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
+                className="glass-button-ghost p-1.5 sm:p-2 rounded-full text-[var(--text-primary)] cursor-pointer"
+                title={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
+              >
+                {theme === 'light' ? (
+                  <Moon className="w-4 h-4 text-slate-700" />
+                ) : (
+                  <Sun className="w-4 h-4 text-amber-400" />
+                )}
+              </button>
             </div>
           </div>
-          {response && (
+        </header>
+
+        {/* Persistent Unmissable MOCK DATA Banner (shown whenever Mock Mode is ON) */}
+        {mockMode && (
+          <div
+            role="status"
+            className="mb-4 sm:mb-6 p-4 rounded-2xl border-2 border-amber-500 bg-amber-500/15 text-amber-950 dark:text-amber-200 shadow-md flex flex-wrap items-center justify-between gap-3 animate-pulse-subtle"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="px-2.5 py-1 rounded-md bg-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider shrink-0 shadow-xs">
+                MOCK DATA
+              </span>
+              <div>
+                <p className="text-xs sm:text-sm font-extrabold uppercase tracking-wide text-amber-900 dark:text-amber-100">
+                  Simulation Active — No backend was called
+                </p>
+                <p className="text-[11px] sm:text-xs text-amber-800/90 dark:text-amber-300 font-medium">
+                  Results generated in this mode are synthetic and will be labeled as MOCK in reports.
+                </p>
+              </div>
+            </div>
+
             <button
-              onClick={handleReset}
-              className="text-sm text-slate-500 hover:text-slate-900 font-medium transition-colors"
+              type="button"
+              onClick={() => setMockMode(false)}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 transition cursor-pointer shrink-0 shadow-xs"
             >
-              ← New Analysis
+              Turn OFF Mock Mode
             </button>
-          )}
-        </div>
-      </header>
+          </div>
+        )}
 
-      <main className="max-w-6xl mx-auto px-6 py-10">
-        <AnimatePresence mode="wait">
-          {/* ── Input form ── */}
-          {!response && !loading && (
-            <motion.div
-              key="input"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="space-y-8"
-            >
-              <div>
-                <h2 className="text-2xl font-bold tracking-tight mb-1">Analyze a Claim</h2>
-                <p className="text-slate-500 text-sm">
-                  Enter the claim and attach supporting media. At least a claim is required; all media is optional.
-                </p>
-              </div>
+        {/* Dismissible Warning Banner (shown when backend is unreachable and mock mode is OFF) */}
+        {backendConnected === false && !mockMode && !dismissWarningBanner && (
+          <div
+            role="status"
+            className="mb-4 sm:mb-6 p-3 sm:p-3.5 rounded-2xl glass-panel border-rose-500/40 bg-rose-500/10 text-rose-900 dark:text-rose-200 flex flex-wrap items-center justify-between gap-3 shadow-md"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
+              <p className="text-xs sm:text-sm font-semibold truncate">
+                {BACKEND_LABEL} is not reachable. Make sure the backend server is running.
+              </p>
+            </div>
 
-              {/* Claim textarea */}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Claim *</label>
-                <textarea
-                  id="claim-input"
-                  value={claim}
-                  onChange={(e) => setClaim(e.target.value)}
-                  placeholder="e.g. 'This photo was taken during the wildfire in California last month.'"
-                  className="w-full h-32 p-4 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all resize-none text-sm leading-relaxed"
-                  maxLength={2000}
-                />
-                <p className="text-xs text-slate-400 mt-1 text-right">{claim.length}/2000</p>
-              </div>
-
-              {/* Media uploads */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
-                    <FileSearch className="w-3.5 h-3.5" /> Image (optional)
-                  </label>
-                  <FileDropZone
-                    label="Drop image or click to browse"
-                    accept="image/*"
-                    file={imageFile}
-                    onFile={setImageFile}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
-                    <Video className="w-3.5 h-3.5" /> Video (optional)
-                  </label>
-                  <FileDropZone
-                    label="Drop video or click to browse"
-                    accept="video/*"
-                    file={videoFile}
-                    onFile={setVideoFile}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
-                    <FileText className="w-3.5 h-3.5" /> Document (optional)
-                  </label>
-                  <FileDropZone
-                    label="Drop PDF/DOCX or click to browse"
-                    accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    file={documentFile}
-                    onFile={setDocumentFile}
-                  />
-                </div>
-              </div>
-
-              {/* Error */}
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-600 text-sm flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                  <p>{error}</p>
-                </div>
-              )}
-
-              {/* Submit */}
+            <div className="flex items-center gap-2 ml-auto">
               <button
-                id="analyze-btn"
-                onClick={handleAnalyze}
-                disabled={!claim.trim()}
-                className="w-full md:w-auto px-8 py-3 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors shadow-sm"
+                type="button"
+                onClick={() => setMockMode(true)}
+                className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-800 dark:text-amber-200 transition cursor-pointer"
               >
-                Run CRDF Analysis
+                Turn on mock mode
               </button>
-            </motion.div>
-          )}
 
-          {/* ── Loading ── */}
-          {loading && (
-            <motion.div
-              key="loading"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col items-center justify-center py-32 text-slate-400 gap-6"
-            >
-              <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
-              <div className="text-center">
-                <p className="font-semibold text-slate-600 text-lg">Running CRDF pipeline…</p>
-                <p className="text-sm mt-1 animate-pulse">
-                  Multimodal checks + text pipeline — this may take up to a few minutes.
-                </p>
-              </div>
-            </motion.div>
-          )}
+              <button
+                type="button"
+                onClick={() => setDismissWarningBanner(true)}
+                aria-label="Dismiss unreachable backend warning"
+                className="p-1 rounded-lg hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
 
-          {/* ── Results ── */}
-          {response && !loading && (
-            <motion.div
-              key="results"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-10"
-            >
-              {/* Claim echo */}
-              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Analyzed Claim</p>
-                <p className="text-slate-800 leading-relaxed">{response.claim}</p>
-              </div>
+        {/* Hero Section */}
+        <section className="mb-4 sm:mb-6 text-center sm:text-left px-1">
+          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[var(--text-primary)]">
+            Multi-Agent Claim Verification
+          </h2>
+          <p className="mt-1 text-sm sm:text-base font-medium text-[var(--text-muted)] max-w-2xl">
+            Evaluate claims across decomposed assertions, forensic media checks, and source credibility weighting.
+          </p>
+        </section>
 
-              {/* Error banner if text pipeline failed */}
-              {response.text_pipeline_error && (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-700 text-sm flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-semibold">Text pipeline warning</p>
-                    <p>{response.text_pipeline_error}</p>
-                  </div>
-                </div>
-              )}
+        {/* Main Glass Card: "Analyze a claim" */}
+        <main className="glass-panel p-5 sm:p-7 shadow-xl">
+          <form onSubmit={handleAnalyze} noValidate>
+            {/* Header of form */}
+            <div className="flex items-center justify-between pb-4 mb-4 border-b border-[var(--glass-border-subtle)]">
+              <h3 className="text-lg sm:text-xl font-bold text-[var(--text-primary)]">
+                Analyze a claim
+              </h3>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[var(--glass-bg-subtle)] border border-[var(--glass-border-subtle)] text-[var(--text-muted)]">
+                {mockMode ? '⚡ Mock Mode Active' : '🌐 Live Backend Mode'}
+              </span>
+            </div>
 
-              {/* Clarification Needed Banner */}
-              {(response.raw_pipeline_data?.take_the_raw_user_task?.ready_for_processing === false ||
-                response.text_pipeline_report?.includes("CLAIM REQUIRES CLARIFICATION")) && (
-                <div className="bg-amber-50/80 border-2 border-amber-300 rounded-2xl p-6 shadow-sm space-y-4">
-                  <div className="flex items-start gap-4">
-                    <div className="p-3 bg-amber-100 text-amber-700 rounded-xl">
-                      <AlertTriangle className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-amber-900">Clarification Needed to Verify Claim</h3>
-                      <p className="text-sm text-amber-700 mt-1">
-                        The submitted claim is ambiguous or underspecified and cannot be evaluated by the fact-checking pipeline.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="bg-white rounded-xl border border-amber-200 p-4 text-slate-800 text-sm font-medium">
-                    <p className="text-xs font-semibold text-amber-600 uppercase tracking-wider mb-1">Missing Context / Question</p>
-                    <p className="italic font-sans text-slate-900">
-                      "{response.raw_pipeline_data?.take_the_raw_user_task?.clarification_question ||
-                        response.raw_pipeline_data?.take_the_raw_user_task?.reasoning ||
-                        'Please specify missing details such as names, dates, or locations.'}"
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 pt-2">
-                    <button
-                      onClick={() => {
-                        setClaim(response.claim);
-                        setResponse(null);
-                      }}
-                      className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-xl text-sm transition-colors shadow-sm"
-                    >
-                      Edit Claim &amp; Resubmit
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* ── Image Analysis ── */}
-              {imgResult?.has_image && (
-                <section>
-                  <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-                    <FileSearch className="w-5 h-5 text-indigo-500" />
-                    Image Authenticity
-                  </h2>
-                  <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                    <AssessmentResult result={imgResult} />
-                  </div>
-                </section>
-              )}
-
-              {/* ── Video Analysis ── generic (no specialist source provided) */}
-              {vidResult?.has_video && (
-                <section>
-                  <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-                    <Video className="w-5 h-5 text-indigo-500" />
-                    Video Analysis
-                  </h2>
-                  <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
-                    <div>
-                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Manipulation Check</p>
-                      <p className="text-sm text-slate-700">
-                        {vidResult.manipulation_check?.appears_manipulated
-                          ? '⚠️ Manipulation signals detected'
-                          : '✅ No manipulation signals detected'}
-                      </p>
-                      {vidResult.manipulation_check?.reasoning && (
-                        <p className="text-sm text-slate-500 mt-1 italic">{vidResult.manipulation_check.reasoning}</p>
-                      )}
-                    </div>
-                    {vidResult.content_match_check && (
-                      <div>
-                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Context Match</p>
-                        <p className="text-sm text-slate-700">
-                          {String(vidResult.content_match_check.matches_claim)}
-                        </p>
-                        {vidResult.content_match_check.reasoning && (
-                          <p className="text-sm text-slate-500 mt-1 italic">{vidResult.content_match_check.reasoning}</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </section>
-              )}
-
-              {/* ── Document Analysis ── */}
-              {docResult?.has_document && (
-                <section>
-                  <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-indigo-500" />
-                    Document &amp; OCR Analysis
-                  </h2>
-                  <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                    <DocumentResult result={docResult} />
-                  </div>
-                </section>
-              )}
-
-              {/* ── Text pipeline report ── */}
-              {response.text_pipeline_report && (
-                <section>
-                  <h2 className="text-lg font-bold mb-4">Text Pipeline Report</h2>
-                  <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                    <pre className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed font-mono overflow-x-auto max-h-96 overflow-y-auto">
-                      {response.text_pipeline_report}
-                    </pre>
-                  </div>
-                </section>
-              )}
-
-              {/* ── Multimodal summary ── */}
-              {response.multimodal_summary_text && (
-                <section>
-                  <h2 className="text-lg font-bold mb-4">Multimodal Summary</h2>
-                  <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                    <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                      {response.multimodal_summary_text}
-                    </p>
-                  </div>
-                </section>
-              )}
-
-              {/* ── Actions ── */}
-              <div className="flex flex-wrap gap-3">
-                <button
-                  id="generate-pdf-btn"
-                  onClick={handleGeneratePdf}
-                  disabled={pdfLoading}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-sm transition-colors shadow-sm"
+            {/* Field 1: Claim Textarea */}
+            <div className="mb-5 sm:mb-6">
+              <div className="flex items-center justify-between mb-1.5">
+                <label
+                  htmlFor="claim-input"
+                  className="text-xs sm:text-sm font-bold text-[var(--text-primary)] flex items-center"
                 >
-                  {pdfLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Generating PDF…
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-4 h-4" />
-                      Download PDF Report
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={handleReset}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-xl text-sm transition-colors"
+                  <span>Claim</span>
+                  <span className="ml-1.5 text-[11px] font-extrabold text-rose-500 uppercase tracking-wider">
+                    required
+                  </span>
+                </label>
+                <span
+                  className={`text-xs font-mono font-medium ${
+                    claim.length >= 2000 ? 'text-rose-500 font-bold' : 'text-[var(--text-subtle)]'
+                  }`}
                 >
-                  New Analysis
-                </button>
+                  {claim.length} / 2000
+                </span>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </main>
+
+              <textarea
+                id="claim-input"
+                name="claim"
+                rows={4}
+                maxLength={2000}
+                required
+                disabled={isRunning}
+                value={claim}
+                onChange={(e) => setClaim(e.target.value)}
+                placeholder="e.g. The first iPhone was announced by Steve Jobs on January 9, 2007, and released on June 29, 2007."
+                className="w-full min-h-[120px] resize-y p-3.5 sm:p-4 rounded-[16px] border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] text-sm sm:text-base text-[var(--text-primary)] placeholder-[var(--text-placeholder)] focus:bg-[var(--glass-bg)] transition-colors outline-none"
+              />
+
+              <p className="mt-1.5 text-xs text-[var(--text-muted)] font-medium">
+                Describe the specific assertion being evaluated.
+              </p>
+            </div>
+
+            {/* Field 2: Supporting Media Drop Zones Grid */}
+            <div className="mb-6">
+              <div className="flex items-center gap-1.5 mb-2.5">
+                <span className="text-xs sm:text-sm font-bold text-[var(--text-primary)]">
+                  Supporting media
+                </span>
+                <span className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wider">
+                  optional
+                </span>
+              </div>
+
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(210px,1fr))] gap-3 sm:gap-4">
+                {/* Zone 1: Image */}
+                <DropZone
+                  type="image"
+                  title="Drop image"
+                  formatsDesc="PNG, JPG, WEBP"
+                  maxSizeBytes={10 * 1024 * 1024}
+                  maxSizeLabel="10 MB"
+                  allowedExtensions={['png', 'jpg', 'jpeg', 'webp']}
+                  file={imageFile}
+                  onFileSelect={setImageFile}
+                  error={imageError}
+                  onErrorChange={setImageError}
+                  disabled={isRunning}
+                />
+
+                {/* Zone 2: Video */}
+                <DropZone
+                  type="video"
+                  title="Drop video"
+                  formatsDesc="MP4, MOV, WEBM"
+                  maxSizeBytes={100 * 1024 * 1024}
+                  maxSizeLabel="100 MB"
+                  allowedExtensions={['mp4', 'mov', 'webm']}
+                  file={videoFile}
+                  onFileSelect={setVideoFile}
+                  error={videoError}
+                  onErrorChange={setVideoError}
+                  disabled={isRunning}
+                />
+
+                {/* Zone 3: Document */}
+                <DropZone
+                  type="document"
+                  title="Drop document"
+                  formatsDesc="PDF, DOCX, TXT"
+                  maxSizeBytes={20 * 1024 * 1024}
+                  maxSizeLabel="20 MB"
+                  allowedExtensions={['pdf', 'docx', 'txt']}
+                  file={documentFile}
+                  onFileSelect={setDocumentFile}
+                  error={documentError}
+                  onErrorChange={setDocumentError}
+                  disabled={isRunning}
+                />
+              </div>
+            </div>
+
+            {/* Field 3: Action Buttons */}
+            <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-[var(--glass-border-subtle)]">
+              <button
+                type="submit"
+                disabled={!claim.trim() || isRunning}
+                className="primary-gradient-btn inline-flex items-center justify-center gap-2 px-6 sm:px-7 py-3 rounded-[14px] text-sm font-extrabold text-white cursor-pointer select-none"
+              >
+                {isRunning ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Analyzing claim...</span>
+                  </>
+                ) : (
+                  <>
+                    <Shield className="w-4 h-4 stroke-[2.5]" />
+                    <span>Analyze claim</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleClear}
+                disabled={isRunning || (!claim && !imageFile && !videoFile && !documentFile && !currentResult && !analysisError)}
+                className="glass-button-ghost inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-3 rounded-[14px] text-sm font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed select-none"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Clear</span>
+              </button>
+            </div>
+          </form>
+        </main>
+
+        {/* Result Card: hidden until an analysis runs */}
+        <div ref={resultRef}>
+          <ResultCard
+            result={currentResult}
+            error={analysisError}
+            onTurnOnMock={() => setMockMode(true)}
+            claim={claim}
+            isMock={mockMode}
+            attachedMedia={[
+              ...(imageFile ? [{ name: imageFile.name, type: 'image' as const, sizeBytes: imageFile.size }] : []),
+              ...(videoFile ? [{ name: videoFile.name, type: 'video' as const, sizeBytes: videoFile.size }] : []),
+              ...(documentFile ? [{ name: documentFile.name, type: 'document' as const, sizeBytes: documentFile.size }] : []),
+            ]}
+            isRunning={isRunning}
+          />
+        </div>
+
+        {/* Footer info */}
+        <footer className="mt-8 text-center text-xs font-medium text-[var(--text-muted)] space-y-1">
+          <p>
+            CRDF System • Multi-Agent Evidence & Fact Verification Engine
+          </p>
+          <p className="text-[11px] text-[var(--text-subtle)]">
+            Evaluates claim veracity through independent agents, credibility scoring, and contradiction detection.
+          </p>
+        </footer>
+      </div>
+
+      {/* History Drawer */}
+      <HistoryDrawer
+        isOpen={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        items={historyItems}
+        onClearHistory={handleClearHistory}
+        onSelectItem={handleSelectHistoryItem}
+      />
     </div>
   );
 }

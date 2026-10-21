@@ -34,6 +34,7 @@ export interface ImageAnalysis {
   has_image: boolean;
   manipulation_check?: MultimodalCheck;
   content_match_check?: ContentMatchCheck;
+  confidence?: number;
 }
 
 export interface VideoAnalysis {

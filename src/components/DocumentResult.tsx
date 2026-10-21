@@ -28,20 +28,20 @@ export function DocumentResult({ result }: DocumentResultProps) {
       >
         {/* Text content */}
         {!result.has_text_content ? (
-          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 text-yellow-700 flex items-start gap-3">
-            <FileWarning className="w-5 h-5 flex-shrink-0 mt-0.5" />
-            <p className="text-sm font-medium">No readable text found in this document.</p>
+          <div className="bg-[var(--status-warning-bg)] border border-[var(--status-warning-border)] rounded-[var(--radius-md)] p-3.5 text-[var(--status-warning)] flex items-start gap-2.5">
+            <FileWarning className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <p className="text-xs font-medium">No readable text found in this document.</p>
           </div>
         ) : (
           <div>
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+              <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">
                 Extracted Text
               </h3>
               {result.extracted_text && (
                 <button
                   onClick={() => navigator.clipboard.writeText(result.extracted_text ?? '')}
-                  className="text-xs text-blue-500 hover:text-blue-400 transition-colors flex items-center gap-1"
+                  className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline transition-colors flex items-center gap-1 cursor-pointer"
                 >
                   <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -51,8 +51,8 @@ export function DocumentResult({ result }: DocumentResultProps) {
                 </button>
               )}
             </div>
-            <div className="bg-slate-50 rounded-lg p-4 border border-slate-200 max-h-60 overflow-y-auto">
-              <p className="text-sm font-mono text-slate-700 whitespace-pre-wrap leading-relaxed">
+            <div className="bg-[var(--glass-bg-subtle)] rounded-[var(--radius-md)] p-3.5 border border-[var(--glass-border-subtle)] max-h-60 overflow-y-auto">
+              <p className="text-xs font-mono text-[var(--text-secondary)] whitespace-pre-wrap leading-relaxed">
                 {result.extracted_text || '(empty)'}
               </p>
             </div>
@@ -62,15 +62,15 @@ export function DocumentResult({ result }: DocumentResultProps) {
         {/* Unreadable sections */}
         {result.unreadable_sections && result.unreadable_sections.length > 0 && (
           <div>
-            <h3 className="text-sm font-medium text-amber-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <AlertTriangle className="w-4 h-4" />
+            <h3 className="text-xs font-bold text-[var(--status-warning)] uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5" />
               Unreadable Sections
             </h3>
             <ul className="space-y-1.5">
               {result.unreadable_sections.map((section, i) => (
                 <li
                   key={i}
-                  className="text-sm text-slate-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-md"
+                  className="text-xs text-[var(--status-warning)] bg-[var(--status-warning-bg)] border border-[var(--status-warning-border)] px-3 py-1.5 rounded-[var(--radius-sm)]"
                 >
                   {section}
                 </li>
@@ -80,9 +80,9 @@ export function DocumentResult({ result }: DocumentResultProps) {
         )}
 
         {/* Footer badge */}
-        <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
-          <FileText className="w-4 h-4 text-slate-400" />
-          <span className="text-xs text-slate-400">Document attached and processed</span>
+        <div className="flex items-center gap-2 pt-2 border-t border-[var(--glass-border-subtle)]">
+          <FileText className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+          <span className="text-[11px] text-[var(--text-muted)]">Document attached and processed</span>
         </div>
       </motion.div>
     </AnimatePresence>
