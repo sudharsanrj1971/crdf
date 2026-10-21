@@ -19,7 +19,7 @@ export interface ReportData {
   attachedMedia?: AttachedMediaReportItem[];
 }
 
-export function generateReport(data: ReportData): void {
+export function createReportPdf(data: ReportData): { doc: jsPDF; filename: string } {
   const { claim, result, isMock, attachedMedia = [] } = data;
 
   let unsupportedCharDetected = false;
@@ -345,6 +345,17 @@ export function generateReport(data: ReportData): void {
   // Filename format: crdf-report-YYYYMMDD-HHmm.pdf
   const filename = `crdf-report-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}.pdf`;
 
-  // Save the PDF
+  return { doc, filename };
+}
+
+export function generateReport(data: ReportData): void {
+  const { doc, filename } = createReportPdf(data);
   doc.save(filename);
+}
+
+export function getReportBlobUrl(data: ReportData): { url: string; filename: string } {
+  const { doc, filename } = createReportPdf(data);
+  const blob = doc.output('blob');
+  const url = URL.createObjectURL(blob);
+  return { url, filename };
 }

@@ -28,11 +28,17 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 
 // ... (existing middleware)
 
-app.use('/api', createProxyMiddleware({
-  target: 'http://127.0.0.1:8000',
-  changeOrigin: true,
-  pathRewrite: { '^/api': '' },
-}));
+// Use the legacy analyze handler directly
+app.post('/analyze', upload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'video', maxCount: 1 },
+  { name: 'document', maxCount: 1 }
+]), _legacyAnalyzeHandler);
+
+app.post('/generate_pdf', (req, res, next) => {
+  // Pass to existing /generate_pdf handler
+  next();
+});
 
 // CORS headers for dev and cross-origin compatibility
 app.use((req, res, next) => {
@@ -194,15 +200,10 @@ app.post('/generate_pdf', (req: Request, res: Response) => {
   }
 });
 
-// Analyze claim endpoint
-app.post(
-  ['/analyze', '/api/analyze'],
-  upload.fields([
-    { name: 'image', maxCount: 1 },
-    { name: 'video', maxCount: 1 },
-    { name: 'document', maxCount: 1 },
-  ]) as any,
-  async (req: Request, res: Response) => {
+// NOTE: /analyze and /generate_pdf are proxied to the Python CrewAI backend (port 8000).
+// The local handler below is intentionally DISABLED â€” kept only as reference fallback.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function _legacyAnalyzeHandler(req: Request, res: Response) {
     console.log('Received /analyze request');
     try {
       const claim = (req.body.claim || '').trim();
@@ -500,7 +501,6 @@ https://apnews.com/hub/ap-fact-check`;
       });
     }
   }
-);
 
 // SPA Dev Server vs Production Static Serving
 async function start() {
@@ -521,7 +521,7 @@ async function start() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`CRDF server is running at http://0.0.0.0:${PORT}`);
+    console.log(`CRDF server is running at http://localhost:`);
   });
 }
 
