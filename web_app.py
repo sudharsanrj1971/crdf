@@ -29,7 +29,7 @@ from fastapi import FastAPI, Form, UploadFile, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Dict, Any, List, Optional
 
 from multimodal_image_check import run_image_check
@@ -53,18 +53,24 @@ async def startup_event_check():
 
 
 
-# Hardening: Explicit CORS allowlist via env var
-allowed_origins = os.getenv(
+# CORS: comma-separated list in CORS_ORIGINS ("*" allows any origin).
+# CORS_ORIGIN_REGEX (optional) lets you allow e.g. every Vercel preview URL:
+#   CORS_ORIGIN_REGEX=https://.*\.vercel\.app
+_origins_env = os.getenv(
     "CORS_ORIGINS",
-    "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000"
-).split(",")
+    "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000",
+)
+allowed_origins = [o.strip().rstrip("/") for o in _origins_env.split(",") if o.strip()]
+_allow_all = "*" in allowed_origins
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
+    allow_origins=["*"] if _allow_all else allowed_origins,
+    allow_origin_regex=os.getenv("CORS_ORIGIN_REGEX") or None,
+    allow_credentials=not _allow_all,  # credentials + "*" is invalid per the CORS spec
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition"],
 )
 
 UPLOAD_DIR = Path(tempfile.gettempdir()) / "crdf_uploads"
@@ -73,40 +79,47 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 
 # --- Pydantic Models for /generate_pdf Validation ---
 class MultimodalCheck(BaseModel):
+    model_config = ConfigDict(extra="allow")
     appears_manipulated: Optional[bool] = False
     reasoning: Optional[str] = ""
 
 class ContentMatchCheck(BaseModel):
+    model_config = ConfigDict(extra="allow")
     matches_claim: Any = "undetermined"
     reasoning: Optional[str] = ""
 
 class ImageAnalysis(BaseModel):
-    has_image: bool
+    model_config = ConfigDict(extra="allow")
+    has_image: bool = False
     manipulation_check: Optional[MultimodalCheck] = None
     content_match_check: Optional[ContentMatchCheck] = None
 
 class VideoAnalysis(BaseModel):
-    has_video: bool
+    model_config = ConfigDict(extra="allow")
+    has_video: bool = False
     manipulation_check: Optional[MultimodalCheck] = None
     content_match_check: Optional[ContentMatchCheck] = None
 
 class DocumentAnalysis(BaseModel):
-    has_document: bool
+    model_config = ConfigDict(extra="allow")
+    has_document: bool = False
     has_text_content: Optional[bool] = False
     extracted_text: Optional[str] = ""
     unreadable_sections: Optional[List[str]] = []
 
 class MultimodalResults(BaseModel):
-    image_analysis: ImageAnalysis
-    video_analysis: VideoAnalysis
-    document_analysis: DocumentAnalysis
+    model_config = ConfigDict(extra="allow")
+    image_analysis: ImageAnalysis = ImageAnalysis()
+    video_analysis: VideoAnalysis = VideoAnalysis()
+    document_analysis: DocumentAnalysis = DocumentAnalysis()
 
 class GeneratePdfRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
     claim: str
-    multimodal_results: MultimodalResults
-    multimodal_summary_text: str
+    multimodal_results: MultimodalResults = MultimodalResults()
+    multimodal_summary_text: Optional[str] = ""
     text_pipeline_report: str
-    raw_pipeline_data: Dict[str, Any]
+    raw_pipeline_data: Optional[Dict[str, Any]] = {}
     text_pipeline_error: Optional[str] = None
 
 
@@ -241,7 +254,7 @@ async def generate_pdf_endpoint(request: GeneratePdfRequest, background_tasks: B
     temp_pdf = UPLOAD_DIR / f"temp_pdf_{uuid.uuid4().hex}.pdf"
     
     with temp_json.open("w", encoding="utf-8") as f:
-        json.dump(request.dict(), f)
+        json.dump(request.model_dump(), f)
     
     success = False
     try:
@@ -258,7 +271,6 @@ async def generate_pdf_endpoint(request: GeneratePdfRequest, background_tasks: B
             path=pdf_path,
             media_type="application/pdf",
             filename="CRDF_Report.pdf",
-            headers={"Content-Disposition": "attachment; filename=CRDF_Report.pdf"}
         )
     except Exception as e:
         import traceback
@@ -272,15 +284,16 @@ async def generate_pdf_endpoint(request: GeneratePdfRequest, background_tasks: B
 
 @app.get("/health")
 async def health_check():
-    import os
-    import sys
-    if not os.getenv("GEMINI_API_KEY"):
-        raise HTTPException(status_code=500, detail="Missing GEMINI_API_KEY")
-    serper_status = "ok"
-    if not os.getenv("SERPER_API_KEY"):
-        serper_status = "missing_warning"
-        print("[CRDF WARNING] SERPER_API_KEY is missing! Real web evidence collection will fail.", file=sys.stderr)
-    return {"status": "ok", "serper_api_key": serper_status}
+    """Liveness probe. Always 200 while the server is up; key problems are
+    reported in the body (the UI shows 'connected' only when ready is true)."""
+    gemini = bool(os.getenv("GEMINI_API_KEY"))
+    serper = bool(os.getenv("SERPER_API_KEY"))
+    return {
+        "status": "ok",
+        "ready": gemini,
+        "gemini_api_key": "ok" if gemini else "missing",
+        "serper_api_key": "ok" if serper else "missing_warning",
+    }
 
 
 dist_dir = Path(__file__).parent / "dist"

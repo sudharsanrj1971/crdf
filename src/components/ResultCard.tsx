@@ -137,14 +137,18 @@ export const ResultCard: React.FC<ResultCardProps> = ({
     setPdfState('preparing');
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 80));
-
-      generateReport({
-        claim,
-        result,
-        isMock,
-        attachedMedia,
-      });
+      if (!isMock && result.raw) {
+        // Live result: backend renders the official CRDF report layout.
+        const blob = await generatePdf(claim, result);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `CRDF_Report_${claim.replace(/[^a-zA-Z0-9]+/g, '_').slice(0, 30)}.pdf`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      } else {
+        generateReport({ claim, result, isMock, attachedMedia });
+      }
 
       setPdfState('downloaded');
       setTimeout(() => {
@@ -152,26 +156,26 @@ export const ResultCard: React.FC<ResultCardProps> = ({
       }, 2000);
     } catch (err: any) {
       console.error('PDF generation failure:', err);
-      setPdfError('Could not create the PDF. Please try again.');
+      setPdfError(err?.message || 'Could not create the PDF. Please try again.');
       setPdfState('idle');
     }
   };
 
-  const handlePreviewPdf = () => {
+  const handlePreviewPdf = async () => {
     if (isRunning) return;
     try {
       setPdfError(null);
-      const { url } = getReportBlobUrl({
-        claim,
-        result,
-        isMock,
-        attachedMedia,
-      });
+      let url: string;
+      if (!isMock && result.raw) {
+        url = URL.createObjectURL(await generatePdf(claim, result));
+      } else {
+        url = getReportBlobUrl({ claim, result, isMock, attachedMedia }).url;
+      }
       setPreviewUrl(url);
       setIsPreviewOpen(true);
     } catch (err: any) {
       console.error('PDF preview failure:', err);
-      setPdfError('Could not render PDF preview.');
+      setPdfError(err?.message || 'Could not render PDF preview.');
     }
   };
 
@@ -214,33 +218,6 @@ export const ResultCard: React.FC<ResultCardProps> = ({
               <span>Download PDF</span>
             </>
           )}
-        </button>
-
-        {/* Server-side PDF Button */}
-        <button
-          type="button"
-          onClick={async () => {
-            setPdfState('preparing');
-            try {
-              const blob = await generatePdf(claim, result);
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `CRDF_Report_${claim.slice(0, 20)}.pdf`;
-              a.click();
-              setPdfState('downloaded');
-            } catch (e) {
-              setPdfError('Failed to generate server PDF');
-            } finally {
-              setTimeout(() => setPdfState('idle'), 2000);
-            }
-          }}
-          disabled={isRunning || pdfState === 'preparing'}
-          aria-label="Download analysis report as PDF (Server-side)"
-          className="glass-button-ghost flex-1 min-[560px]:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-[12px] text-xs font-bold text-[var(--text-primary)] border border-[var(--glass-border)] hover:border-[var(--accent-indigo)] hover:bg-[var(--glass-bg)] transition-all cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-indigo)] disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
-        >
-           <FileText className="w-3.5 h-3.5 text-[var(--accent-indigo)]" />
-           <span>Server PDF</span>
         </button>
       </div>
 
@@ -401,6 +378,18 @@ export const ResultCard: React.FC<ResultCardProps> = ({
               </ul>
             )}
           </div>
+        )}
+
+        {/* Full pipeline report (live results) */}
+        {result.report && (
+          <details className="mt-6 border-t border-[var(--glass-border-subtle)] pt-6">
+            <summary className="cursor-pointer text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] hover:text-[var(--text-primary)]">
+              Full verification report
+            </summary>
+            <pre className="mt-3.5 whitespace-pre-wrap break-words text-xs leading-relaxed text-[var(--text-primary)] font-sans">
+              {result.report}
+            </pre>
+          </details>
         )}
       </section>
 

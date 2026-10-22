@@ -1,4 +1,30 @@
-# CRDF System — Deployment Guide
+# CRDF System - Deployment Guide
+
+## Free hosting (recommended split)
+
+The Python backend (FastAPI + CrewAI) and the React frontend deploy separately.
+Prices/limits change - re-check before relying on them.
+
+| Part | Platform | Why / caveats |
+|------|----------|---------------|
+| Frontend (static `dist/`) | **Cloudflare Pages** (or Netlify) | Free static hosting, no personal-use-only clause. Vercel Hobby also works but is non-commercial only. |
+| Backend (Docker) | **Render free web service** | No card needed; 512 MB RAM and spins down after 15 idle min (about 1 min cold start); Render says not for production. CrewAI + matplotlib is tight in 512 MB - if it OOMs, use Google Cloud Run (free quota, card required) with 1-2 GiB. |
+| Not free | Hugging Face Docker Spaces | HF docs now require a paid plan to create Docker Spaces. |
+
+### Steps
+1. **Backend (Render):** New > Blueprint > pick this repo (uses `render.yaml`). Set `GEMINI_API_KEY`, `SERPER_API_KEY`. Set `CORS_ORIGINS` to your frontend URL (or leave `*`). Check `https://<service>.onrender.com/health` returns `"ready": true`.
+2. **Frontend (Cloudflare Pages / Netlify / Vercel):** build command `npm run build`, output `dist`, env var `VITE_BACKEND_URL=https://<service>.onrender.com` (no trailing slash).
+3. Open the site: the header should show the backend as connected. First request after idle takes about a minute (cold start).
+
+### Local run (no Docker)
+```bash
+pip install -r requirements.txt && uvicorn web_app:app --port 8000   # terminal 1
+npm install && npm run dev                                          # terminal 2 (Vite proxies /analyze,/generate_pdf,/health)
+```
+Single-origin alternative: `npm run build && NODE_ENV=production npm start` (gateway proxies to `PYTHON_BACKEND_URL`).
+
+---
+
 
 ## Architecture Overview
 

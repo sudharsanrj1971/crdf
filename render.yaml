@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: crdf-backend
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: SERPER_API_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        value: "*"
